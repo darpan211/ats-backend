@@ -41,6 +41,7 @@ export const register = async (req, res) => {
         const newUser = new User({
             email,
             mobile,
+
             password_hash,
             metadata,
             sellerId,
@@ -83,11 +84,90 @@ export const register = async (req, res) => {
     }
 };
 
+export const getUsers = async (req, res) => {
+    try {
+        const users = await User.find(req.query).lean();
+        return sendSuccessResponse(res, users, 'Users fetched successfully');
+    } catch (err) {
+        console.error('Get users error:', err);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
+
+export const updateUser = async (req, res) => {
+    try {
+        const updates = req.body;
+
+        // Prevent updating sensitive fields directly if needed
+        delete updates.password;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            updates,
+            { new: true }
+        ).lean();
+
+        if (!updatedUser) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'User not found'
+            );
+        }
+
+        return sendSuccessResponse(
+            res,
+            updatedUser,
+            'User updated successfully'
+        );
+    } catch (err) {
+        console.error('Update user error:', err);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
+
+export const deleteUser = async (req, res) => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(req.params.id).lean();
+
+        if (!deletedUser) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'User not found'
+            );
+        }
+
+        // Optional: Also remove from tenant mapping
+        await Tenantuser.deleteMany({ userId: req.params.id });
+
+        return sendSuccessResponse(
+            res,
+            deletedUser,
+            'User deleted successfully'
+        );
+    } catch (err) {
+        console.error('Delete user error:', err);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
+
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user by email
         const user = await User.findOne({
             $or: [{ email: email }],
         });
