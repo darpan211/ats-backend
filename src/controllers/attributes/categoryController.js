@@ -36,6 +36,33 @@ export const getCategoryController = async (req, res) => {
         console.error('Get category Error:', err);
     }
 };
+export const getCategoryById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const category = await Attribute.findById(id);
+
+        if (!category) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'Category not found'
+            );
+        }
+
+        return sendSuccessResponse(
+            res,
+            category,
+            'Category fetched successfully'
+        );
+    } catch (error) {
+        console.error('Get Category by ID Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
 
 export const deleteCategoryController = async (req, res) => {
     try {

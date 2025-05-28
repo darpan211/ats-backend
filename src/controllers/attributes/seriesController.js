@@ -32,6 +32,26 @@ export const getSeriesController = async (req, res) => {
         console.error('Get series Error:', err);
     }
 };
+export const getSeriesById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const series = await seriesModel.findById(id);
+        if (!series) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'Series not found'
+            );
+        }
+        return sendSuccessResponse(res, series, 'Series fetched successfully');
+    } catch (error) {
+        console.error('Get series by ID Error:', error);
+        return sendErrorResponse(
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.server.message
+        );
+    }
+};
 export const deleteSeriesController = async (req, res) => {
     try {
         console.log('deleteSeriesController  hit');

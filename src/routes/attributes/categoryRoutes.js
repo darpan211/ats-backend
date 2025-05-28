@@ -4,6 +4,7 @@ import {
     deleteCategoryController,
     getCategoryController,
     updateCategoryController,
+    getCategoryById,
 } from '../../controllers/attributes/categoryController.js';
 import {
     authenticateToken,
@@ -23,6 +24,12 @@ router.get(
     authenticateToken,
     authorizeRoles('admin'),
     getCategoryController
+);
+router.get(
+    '/getcategory/:id',
+    authenticateToken,
+    authorizeRoles('admin'),
+    getCategoryById
 );
 router.delete(
     '/deletecategory/:id',

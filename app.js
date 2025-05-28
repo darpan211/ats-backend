@@ -26,12 +26,12 @@ app.use('/uploads', express.static('uploads'));
 connectToDatabase()
     .then(() => {
         app.listen(PORT, () => {
-            console.log(`✅ Server is running on http://localhost:${PORT}`);
+            console.log(`Server is running on http://localhost:${PORT}`);
         });
     })
     .catch((error) => {
         console.error(
-            '❌ Failed to start server due to DB connection error:',
+            'Failed to start server due to DB connection error:',
             error
         );
         process.exit(1); // Exit with failure
@@ -39,7 +39,7 @@ connectToDatabase()
 
 // Optional: Graceful shutdown
 process.on('SIGINT', async () => {
-    console.log('\n🛑 SIGINT received. Closing MongoDB connection...');
+    console.log('\n SIGINT received. Closing MongoDB connection...');
     await disconnectFromDatabase();
     process.exit(0);
 });

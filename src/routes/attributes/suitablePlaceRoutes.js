@@ -4,6 +4,7 @@ import {
     deleteSuitablePlaceController,
     getSuitablePlaceController,
     updateSuitablePlaceController,
+    getSuitablePlaceById,
 } from '../../controllers/attributes/suitablePlaceController.js';
 import {
     authenticateToken,
@@ -23,6 +24,12 @@ router.get(
     authenticateToken,
     authorizeRoles('admin'),
     getSuitablePlaceController
+);
+router.get(
+    '/getsuitablePlace/:id',
+    authenticateToken,
+    authorizeRoles('admin'),
+    getSuitablePlaceById
 );
 router.delete(
     '/deletesuitablePlace/:id',

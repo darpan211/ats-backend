@@ -4,6 +4,7 @@ import {
     deleteColorsController,
     getColorsController,
     updateColorsController,
+    getColorsById,
 } from '../../controllers/attributes/colorsController.js';
 import {
     authenticateToken,
@@ -20,13 +21,19 @@ router.get(
     '/getcolors',
     authenticateToken,
     authorizeRoles('admin'),
-    deleteColorsController
+    getColorsController
+);
+router.get(
+    '/getcolors/:id',
+    authenticateToken,
+    authorizeRoles('admin'),
+    getColorsById
 );
 router.delete(
     '/deletcolors/:id',
     authenticateToken,
     authorizeRoles('admin'),
-    getColorsController
+    deleteColorsController
 );
 router.put(
     '/updatecolors/:id',

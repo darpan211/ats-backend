@@ -4,6 +4,7 @@ import {
     deleteMaterialController,
     getMaterialController,
     updateMaterialController,
+    getMaterialById,
 } from '../../controllers/attributes/materialController.js';
 import {
     authenticateToken,
@@ -21,6 +22,12 @@ router.get(
     authenticateToken,
     authorizeRoles('admin'),
     getMaterialController
+);
+router.get(
+    '/getmaterial/:id',
+    authenticateToken,
+    authorizeRoles('admin'),
+    getMaterialById
 );
 router.delete(
     '/deletematerial',

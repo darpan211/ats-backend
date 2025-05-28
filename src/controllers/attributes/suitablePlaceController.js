@@ -49,7 +49,33 @@ export const getSuitablePlaceController = async (req, res) => {
         });
     }
 };
+export const getSuitablePlaceById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const suitablePlace = await suitablePlaceModel.findById(id);
 
+        if (!suitablePlace) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'suitablePlace not found'
+            );
+        }
+
+        return sendSuccessResponse(
+            res,
+            suitablePlace,
+            'suitablePlace fetched successfully'
+        );
+    } catch (error) {
+        console.error('Get suitablePlace by ID Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
 export const deleteSuitablePlaceController = async (req, res) => {
     try {
         const { id } = req.params;

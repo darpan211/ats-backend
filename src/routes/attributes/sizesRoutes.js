@@ -4,6 +4,7 @@ import {
     deleteSizesController,
     getSizesController,
     updateSizesController,
+    getSizesById,
 } from '../../controllers/attributes/sizesController.js';
 import {
     authenticateToken,
@@ -23,6 +24,12 @@ router.get(
     authenticateToken,
     authorizeRoles('admin'),
     getSizesController
+);
+router.get(
+    '/getsizes/:id',
+    authenticateToken,
+    authorizeRoles('admin'),
+    getSizesById
 );
 router.delete(
     '/deletesizes/:id',
