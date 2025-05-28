@@ -7,7 +7,7 @@ import materialRoutes from './attributes/materialRoutes.js';
 import sizesRoutes from './attributes/sizesRoutes.js';
 import colorsRoutes from './attributes/colorsRoutes.js';
 import suitablePlaceRoutes from '../routes/attributes/suitablePlaceRoutes.js';
-
+import addTiles from './tilesRoutes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -18,5 +18,6 @@ router.use('/material', materialRoutes);
 router.use('/sizes', sizesRoutes);
 router.use('/colors', colorsRoutes);
 router.use('/suitablePlace', suitablePlaceRoutes);
+router.use('/tiles', addTiles);
 
 export default router;

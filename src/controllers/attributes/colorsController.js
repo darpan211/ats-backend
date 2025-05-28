@@ -32,6 +32,29 @@ export const getColorsController = async (req, res) => {
     }
 };
 
+export const getColorsById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const colors = await colorsModel.findById(id);
+
+        if (!colors) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'colors not found'
+            );
+        }
+
+        return sendSuccessResponse(res, colors, 'colors fetched successfully');
+    } catch (error) {
+        console.error('Get colors by ID Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
 export const deleteColorsController = async (req, res) => {
     try {
         const { id } = req.params;

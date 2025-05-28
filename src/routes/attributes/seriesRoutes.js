@@ -4,6 +4,7 @@ import {
     getSeriesController,
     deleteSeriesController,
     updateSeriesController,
+    getSeriesById,
 } from '../../controllers/attributes/seriesController.js';
 import {
     authenticateToken,
@@ -23,6 +24,12 @@ router.get(
     authenticateToken,
     authorizeRoles('admin'),
     getSeriesController
+);
+router.get(
+    '/getseries/:id',
+    authenticateToken,
+    authorizeRoles('admin'),
+    getSeriesById
 );
 router.delete(
     '/deleteseries/:id',

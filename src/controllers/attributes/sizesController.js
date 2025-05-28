@@ -4,12 +4,10 @@ import sizesModel from '../../models/attribute/sizes.model.js';
 
 export const createSizesController = async (req, res) => {
     try {
-        const { sizes } = req.body;
-
-        const newSizes = new sizesModel({ sizes });
+        const { height, width } = req.body;
+        const sizes = `${height} X ${width}`;
+        const newSizes = new sizesModel({ height, width, sizes });
         await newSizes.save();
-
-       
 
         return sendSuccessResponse(res, newSizes, 'Sizes added successfully');
     } catch (error) {
@@ -34,7 +32,29 @@ export const getSizesController = async (req, res) => {
         console.error('Get sizes Error:', err);
     }
 };
+export const getSizesById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const sizes = await sizesModel.findById(id);
 
+        if (!sizes) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'sizes not found'
+            );
+        }
+
+        return sendSuccessResponse(res, sizes, 'sizes fetched successfully');
+    } catch (error) {
+        console.error('Get sizes by ID Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
 export const deleteSizesController = async (req, res) => {
     try {
         console.log('deleteSizesController  hit');
@@ -53,7 +73,7 @@ export const deleteSizesController = async (req, res) => {
 
         return sendSuccessResponse(
             res,
-            deletedsizes,
+            deletedSizes,
             'sizes deleted successfully'
         );
     } catch (error) {
@@ -69,7 +89,21 @@ export const updateSizesController = async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
+        // Recalculate `sizes` if height or width is updated
+        if (updateData.height || updateData.width) {
+            const existing = await sizesModel.findById(id);
+            if (!existing) {
+                return sendErrorResponse(
+                    res,
+                    HTTPSTATUS.notFound.code,
+                    'material not found'
+                );
+            }
 
+            const updatedHeight = updateData.height || existing.height;
+            const updatedWidth = updateData.width || existing.width;
+            updateData.sizes = `${updatedHeight} X ${updatedWidth}`;
+        }
         const updateSizesController = await sizesModel.findByIdAndUpdate(
             id,
             updateData,

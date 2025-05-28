@@ -37,6 +37,31 @@ export const getMaterialController = async (req, res) => {
     }
 };
 
+export const getMaterialById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const material = await materialModel.findById(id);
+        if (!material) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'Material not found'
+            );
+        }
+        return sendSuccessResponse(
+            res,
+            material,
+            'Material fetched successfully'
+        );
+    } catch (error) {
+        console, error('Get material by ID Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.Error.code,
+            HTTPSTATUS.serverError.Error.message
+        );
+    }
+};
 export const deleteMaterialController = async (req, res) => {
     try {
         console.log('deleteSeriesController  hit');
@@ -66,7 +91,6 @@ export const deleteMaterialController = async (req, res) => {
             HTTPSTATUS.serverError.message
         );
     }
-
 };
 
 export const updateMaterialController = async (req, res) => {
@@ -104,4 +128,3 @@ export const updateMaterialController = async (req, res) => {
         );
     }
 };
-
