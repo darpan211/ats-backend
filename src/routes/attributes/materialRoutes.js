@@ -36,7 +36,7 @@ router.delete(
     deleteMaterialController
 );
 router.put(
-    '/updatematerial',
+    '/updatematerial/:id',
     authenticateToken,
     authorizeRoles('admin'),
     updateMaterialController
