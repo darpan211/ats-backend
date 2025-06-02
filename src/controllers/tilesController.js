@@ -172,3 +172,46 @@ export const updateTiles = async (req, res) => {
         );
     }
 };
+
+export const filterTiles = async (req, res) => {
+    try {
+        const {
+            tiles_name,
+            description,
+            series,
+            category,
+            suitable_place,
+            size,
+        } = req.query;
+
+        // Build dynamic filter object
+        const filter = {};
+        if (tiles_name)
+            filter.tiles_name = { $regex: tiles_name, $options: 'i' };
+        if (description)
+            filter.description = { $regex: description, $options: 'i' };
+        if (series) filter.series = { $regex: series, $options: 'i' };
+        if (category) filter.category = { $regex: category, $options: 'i' };
+        if (suitable_place)
+            filter.suitable_place = { $regex: suitable_place, $options: 'i' };
+        if (size) filter.size = { $regex: size, $options: 'i' };
+        const tiles = await Tiles.find(filter);
+
+        if (tiles.length === 0) {
+            return sendSuccessResponse(
+                res,
+                [],
+                'No tiles found matching the filter criteria',
+                200
+            );
+        }
+        return sendSuccessResponse(res, tiles, 'Tiles filtered successfully');
+    } catch (error) {
+        console.error('Filter Tiles Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};

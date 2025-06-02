@@ -6,6 +6,7 @@ import {
     getTilesById,
     deleteTiles,
     updateTiles,
+    filterTiles,
 } from '../controllers/tilesController.js';
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.put('/updatetiles/:id', upload.single('tiles_image'), updateTiles);
 router.get('/gettiles', getTiles);
 router.get('/gettiles/:id', getTilesById);
 router.delete('/deletetiles/:id', deleteTiles);
+router.get('/filter', filterTiles);
 
 export default router;
