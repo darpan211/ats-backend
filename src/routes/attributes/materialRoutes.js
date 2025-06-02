@@ -30,7 +30,7 @@ router.get(
     getMaterialById
 );
 router.delete(
-    '/deletematerial',
+    '/deletematerial/:id',
     authenticateToken,
     authorizeRoles('admin'),
     deleteMaterialController

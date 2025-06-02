@@ -27,6 +27,7 @@ export const addTiles = async (req, res) => {
             category,
             suitable_place,
             size,
+            status,
         } = req.body;
         const tiles_image = req.file;
         const colorResponse = await getImageColors(tiles_image.path);
@@ -41,6 +42,7 @@ export const addTiles = async (req, res) => {
             size,
             tiles_color: colorResponse,
             tiles_image: imageUrl,
+            status,
         });
 
         return sendSuccessResponse(res, 'Tiles added successfully');
