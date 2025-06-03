@@ -14,31 +14,31 @@ const router = express.Router();
 router.post(
     '/addcolors',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     createColorsController
 );
 router.get(
     '/getcolors',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin', 'seller', 'retailer'),
     getColorsController
 );
 router.get(
     '/getcolors/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     getColorsById
 );
 router.delete(
     '/deletcolors/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     deleteColorsController
 );
 router.put(
     '/updatecolors/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     updateColorsController
 );
 
