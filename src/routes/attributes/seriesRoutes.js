@@ -16,31 +16,31 @@ const router = express.Router();
 router.post(
     '/addseries',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     createSeriesController
 );
 router.get(
     '/getseries',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin', 'seller', 'retailer'),
     getSeriesController
 );
 router.get(
     '/getseries/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     getSeriesById
 );
 router.delete(
     '/deleteseries/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     deleteSeriesController
 );
 router.put(
     '/updateseries/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     updateSeriesController
 );
 

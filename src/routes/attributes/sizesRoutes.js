@@ -16,31 +16,31 @@ const router = express.Router();
 router.post(
     '/addsizes',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     createSizesController
 );
 router.get(
     '/getsizes',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin', 'seller', 'retailer'),
     getSizesController
 );
 router.get(
     '/getsizes/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     getSizesById
 );
 router.delete(
     '/deletesizes/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     deleteSizesController
 );
 router.put(
     '/updatesizes/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     updateSizesController
 );
 

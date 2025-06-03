@@ -14,31 +14,31 @@ const router = express.Router();
 router.post(
     '/addmaterial',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     createMaterialController
 );
 router.get(
     '/getmaterial',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin', 'seller', 'retailer'),
     getMaterialController
 );
 router.get(
     '/getmaterial/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     getMaterialById
 );
 router.delete(
     '/deletematerial/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     deleteMaterialController
 );
 router.put(
     '/updatematerial/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     updateMaterialController
 );
 

@@ -8,14 +8,49 @@ import {
     updateTiles,
     filterTiles,
 } from '../controllers/tilesController.js';
-
+import {
+    authenticateToken,
+    authorizeRoles,
+} from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
-router.post('/addtiles', upload.single('tiles_image'), addTiles);
-router.put('/updatetiles/:id', upload.single('tiles_image'), updateTiles);
-router.get('/gettiles', getTiles);
-router.get('/gettiles/:id', getTilesById);
-router.delete('/deletetiles/:id', deleteTiles);
-router.get('/filter', filterTiles);
+router.post(
+    '/addtiles',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    upload.single('tiles_image'),
+    addTiles
+);
+router.put(
+    '/updatetiles/:id',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    upload.single('tiles_image'),
+    updateTiles
+);
+router.get(
+    '/gettiles',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    getTiles
+);
+router.get(
+    '/gettiles/:id',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    getTilesById
+);
+router.delete(
+    '/deletetiles/:id',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    deleteTiles
+);
+router.get(
+    '/filter',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    filterTiles
+);
 
 export default router;

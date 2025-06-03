@@ -16,31 +16,31 @@ const router = express.Router();
 router.post(
     '/addcategory',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     createCategoryController
 );
 router.get(
     '/getcategory',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin', 'seller', 'retailer'),
     getCategoryController
 );
 router.get(
     '/getcategory/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     getCategoryById
 );
 router.delete(
     '/deletecategory/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     deleteCategoryController
 );
 router.put(
     '/updatecategory/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     updateCategoryController
 );
 

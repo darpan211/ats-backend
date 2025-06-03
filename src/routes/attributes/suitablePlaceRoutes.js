@@ -16,31 +16,31 @@ const router = express.Router();
 router.post(
     '/addsuitablePlace',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     createSuitablePlaceController
 );
 router.get(
     '/getsuitablePlace',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin', 'seller', 'retailer'),
     getSuitablePlaceController
 );
 router.get(
     '/getsuitablePlace/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     getSuitablePlaceById
 );
 router.delete(
     '/deletesuitablePlace/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     deleteSuitablePlaceController
 );
 router.put(
     '/updatesuitablePlace/:id',
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'superadmin'),
     updateSuitablePlaceController
 );
 
