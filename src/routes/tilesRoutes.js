@@ -7,6 +7,7 @@ import {
     deleteTiles,
     updateTiles,
     filterTiles,
+    getFilteredTiles,
 } from '../controllers/tilesController.js';
 import {
     authenticateToken,
@@ -18,7 +19,7 @@ router.post(
     '/addtiles',
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
-    upload.single('tiles_image'),
+    upload.array('tiles_image', 100),
     addTiles
 );
 router.put(
@@ -51,6 +52,12 @@ router.get(
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
     filterTiles
+);
+router.get(
+    '/getfilteredtiles',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    getFilteredTiles
 );
 
 export default router;

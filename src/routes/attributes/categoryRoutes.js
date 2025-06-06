@@ -16,7 +16,7 @@ const router = express.Router();
 router.post(
     '/addcategory',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    authorizeRoles('admin', 'superadmin', 'seller'),
     createCategoryController
 );
 router.get(

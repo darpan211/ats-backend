@@ -16,7 +16,7 @@ const router = express.Router();
 router.post(
     '/addseries',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    authorizeRoles('admin', 'superadmin', 'seller'),
     createSeriesController
 );
 router.get(

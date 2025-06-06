@@ -1,10 +1,26 @@
-import { sendErrorResponse, sendSuccessResponse } from '../../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../../utils/helper.js';
 import { HTTPSTATUS } from '../../utils/constants.js';
 import suitablePlaceModel from '../../models/attribute/suitablePlace.model.js';
 
 export const createSuitablePlaceController = async (req, res) => {
     try {
         const { suitablePlace } = req.body;
+
+        // Check if the suitablePlace already exists (case-insensitive)
+        const existingPlace = await suitablePlaceModel.findOne({
+            suitablePlace: { $regex: `^${suitablePlace}$`, $options: 'i' },
+        });
+        if (existingPlace) {
+            return sendErrorResponse(
+                res,
+                400,
+                'This suitablePlace already exists'
+            );
+        }
 
         const newSuitablePlace = new suitablePlaceModel({ suitablePlace });
         await newSuitablePlace.save();
@@ -26,9 +42,11 @@ export const createSuitablePlaceController = async (req, res) => {
 
 export const getSuitablePlaceController = async (req, res) => {
     try {
-        const newsuitablePlace = await suitablePlaceModel.find();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(suitablePlaceModel, {}, page, limit);
 
-        if (!newsuitablePlace || newsuitablePlace.length === 0) {
+        if (!result || result.length === 0) {
             return res.status(400).json({
                 success: false,
                 errorCode: 400,
@@ -39,7 +57,7 @@ export const getSuitablePlaceController = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: 'suitablePlace fetched successfully',
-            data: newsuitablePlace,
+            data: result,
         });
     } catch (err) {
         console.error('Get suitablePlace Error:', err);

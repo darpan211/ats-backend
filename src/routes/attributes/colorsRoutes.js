@@ -14,7 +14,7 @@ const router = express.Router();
 router.post(
     '/addcolors',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    authorizeRoles('admin', 'superadmin', 'seller'),
     createColorsController
 );
 router.get(
@@ -30,7 +30,7 @@ router.get(
     getColorsById
 );
 router.delete(
-    '/deletcolors/:id',
+    '/deletecolors/:id',
     authenticateToken,
     authorizeRoles('admin', 'superadmin'),
     deleteColorsController

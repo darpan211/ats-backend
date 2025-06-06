@@ -16,7 +16,7 @@ const router = express.Router();
 router.post(
     '/addsuitablePlace',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    authorizeRoles('admin', 'superadmin', 'seller'),
     createSuitablePlaceController
 );
 router.get(

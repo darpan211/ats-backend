@@ -26,18 +26,35 @@ const addTiles = new mongoose.Schema(
             type: String,
             required: true,
         },
-        tiles_image: {
+        thickness: {
             type: String,
             required: true,
         },
-        tiles_color: {
-            type: String,
-            default: null,
-        },
+        tiles_image: [
+            {
+                type: String,
+                required: true,
+            },
+        ],
+        tiles_color: [{ type: String, default: null }],
         status: {
             type: String,
             enum: ['active', 'inactive'],
             default: 'active',
+        },
+        created_by: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'users',
+            required: true,
+        },
+        favorite: {
+            type: Boolean,
+            default: false,
+        },
+        priority: {
+            enum: ['low', 'medium', 'high'],
+            type: String,
+            default: 'medium',
         },
     },
     { timestamps: true }

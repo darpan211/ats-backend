@@ -1,5 +1,9 @@
 import Room from '../models/room.modal.js';
-import { sendErrorResponse, sendSuccessResponse } from '../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../utils/helper.js';
 import { HTTPSTATUS } from '../utils/constants.js';
 
 export const createRoom = async (req, res) => {
@@ -96,8 +100,10 @@ export const deleteRoom = async (req, res) => {
 
 export const getRooms = async (req, res) => {
     try {
-        const rooms = await Room.find();
-        return sendSuccessResponse(res, rooms, 'Rooms fetched successfully');
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(Room, {}, page, limit);
+        return sendSuccessResponse(res, result, 'Rooms fetched successfully');
     } catch (err) {
         console.error('Get Rooms Error:', err);
         return sendErrorResponse(

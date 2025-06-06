@@ -1,10 +1,21 @@
-import { sendErrorResponse, sendSuccessResponse } from '../../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../../utils/helper.js';
 import { HTTPSTATUS } from '../../utils/constants.js';
 import seriesModel from '../../models/attribute/series.model.js';
 
 export const createSeriesController = async (req, res) => {
     try {
         const { series } = req.body;
+
+        const existingSeries = await seriesModel.findOne({
+            series: { $regex: `^${series}$`, $options: 'i' },
+        });
+        if (existingSeries) {
+            return sendErrorResponse(res, 400, 'This series already exists');
+        }
 
         const newSeries = new seriesModel({ series });
         await newSeries.save();
@@ -22,12 +33,10 @@ export const createSeriesController = async (req, res) => {
 
 export const getSeriesController = async (req, res) => {
     try {
-        const SeriesCantroller = await seriesModel.find();
-        return sendSuccessResponse(
-            res,
-            SeriesCantroller,
-            'series fetched successfully'
-        );
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(seriesModel, {}, page, limit);
+        return sendSuccessResponse(res, result, 'series fetched successfully');
     } catch (err) {
         console.error('Get series Error:', err);
     }

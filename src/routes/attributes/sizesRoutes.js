@@ -16,7 +16,7 @@ const router = express.Router();
 router.post(
     '/addsizes',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    authorizeRoles('admin', 'superadmin', 'seller'),
     createSizesController
 );
 router.get(

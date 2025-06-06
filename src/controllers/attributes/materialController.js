@@ -1,10 +1,21 @@
-import { sendErrorResponse, sendSuccessResponse } from '../../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../../utils/helper.js';
 import { HTTPSTATUS } from '../../utils/constants.js';
 import materialModel from '../../models/attribute/material.model.js';
 
 export const createMaterialController = async (req, res) => {
     try {
         const { material } = req.body;
+        // Check if the material already exists (case-insensitive)
+        const existingMaterial = await materialModel.findOne({
+            material: { $regex: `^${material}$`, $options: 'i' },
+        });
+        if (existingMaterial) {
+            return sendErrorResponse(res, 400, 'This material already exists');
+        }
 
         const newMaterial = new materialModel({ material });
         await newMaterial.save();
@@ -26,10 +37,12 @@ export const createMaterialController = async (req, res) => {
 
 export const getMaterialController = async (req, res) => {
     try {
-        const materialController = await materialModel.find();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(materialModel, {}, page, limit);
         return sendSuccessResponse(
             res,
-            materialController,
+            result,
             'material fetched successfully'
         );
     } catch (err) {
