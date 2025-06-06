@@ -109,9 +109,27 @@ export const deleteMaterialController = async (req, res) => {
 export const updateMaterialController = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        let { material, ...rest } = req.body;
 
-        const updateMaterialController = await materialModel.findByIdAndUpdate(
+        if (material) {
+            // Normalize spaces
+            material = material.trim().replace(/\s+/g, ' ');
+            const existingMaterial = await materialModel.findOne({
+                material: { $regex: `^${material}$`, $options: 'i' },
+                _id: { $ne: id },
+            });
+            if (existingMaterial) {
+                return sendErrorResponse(
+                    res,
+                    400,
+                    'This material already exists'
+                );
+            }
+        }
+
+        const updateData = material ? { material, ...rest } : { ...rest };
+
+        const updatedMaterial = await materialModel.findByIdAndUpdate(
             id,
             updateData,
             {
@@ -120,7 +138,7 @@ export const updateMaterialController = async (req, res) => {
             }
         );
 
-        if (!updateMaterialController) {
+        if (!updatedMaterial) {
             return sendErrorResponse(
                 res,
                 HTTPSTATUS.notFound.code,
@@ -129,7 +147,7 @@ export const updateMaterialController = async (req, res) => {
         }
         return sendSuccessResponse(
             res,
-            updateMaterialController,
+            updatedMaterial,
             'material updated successfully'
         );
     } catch (error) {

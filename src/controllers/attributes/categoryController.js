@@ -112,9 +112,27 @@ export const deleteCategoryController = async (req, res) => {
 export const updateCategoryController = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        let { category, ...rest } = req.body;
 
-        const updateCategoryController = await Attribute.findByIdAndUpdate(
+        if (category) {
+            // Normalize spaces
+            category = category.trim().replace(/\s+/g, ' ');
+            const existingCategory = await Attribute.findOne({
+                category: { $regex: `^${category}$`, $options: 'i' },
+                _id: { $ne: id },
+            });
+            if (existingCategory) {
+                return sendErrorResponse(
+                    res,
+                    400,
+                    'This category already exists'
+                );
+            }
+        }
+
+        const updateData = category ? { category, ...rest } : { ...rest };
+
+        const updatedCategory = await Attribute.findByIdAndUpdate(
             id,
             updateData,
             {
@@ -123,7 +141,7 @@ export const updateCategoryController = async (req, res) => {
             }
         );
 
-        if (!updateCategoryController) {
+        if (!updatedCategory) {
             return sendErrorResponse(
                 res,
                 HTTPSTATUS.notFound.code,
@@ -132,7 +150,7 @@ export const updateCategoryController = async (req, res) => {
         }
         return sendSuccessResponse(
             res,
-            updateCategoryController,
+            updatedCategory,
             'category updated successfully'
         );
     } catch (error) {

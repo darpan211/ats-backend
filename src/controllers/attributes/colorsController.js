@@ -97,9 +97,23 @@ export const deleteColorsController = async (req, res) => {
 export const updateColorsController = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        let { colors, ...rest } = req.body;
 
-        const updateColorsController = await colorsModel.findByIdAndUpdate(
+        if (colors) {
+            // Normalize spaces
+            colors = colors.trim().replace(/\s+/g, ' ');
+            const existingColor = await colorsModel.findOne({
+                colors: { $regex: `^${colors}$`, $options: 'i' },
+                _id: { $ne: id },
+            });
+            if (existingColor) {
+                return sendErrorResponse(res, 400, 'This color already exists');
+            }
+        }
+
+        const updateData = colors ? { colors, ...rest } : { ...rest };
+
+        const updatedColors = await colorsModel.findByIdAndUpdate(
             id,
             updateData,
             {
@@ -108,7 +122,7 @@ export const updateColorsController = async (req, res) => {
             }
         );
 
-        if (!updateColorsController) {
+        if (!updatedColors) {
             return sendErrorResponse(
                 res,
                 HTTPSTATUS.notFound.code,
@@ -117,7 +131,7 @@ export const updateColorsController = async (req, res) => {
         }
         return sendSuccessResponse(
             res,
-            updateColorsController,
+            updatedColors,
             'colors updated successfully'
         );
     } catch (error) {
