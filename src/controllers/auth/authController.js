@@ -180,6 +180,15 @@ export const login = async (req, res) => {
             );
         }
 
+        // Check if user is active
+        if (user.status !== 'active') {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.unauthorized.code,
+                'User is not active'
+            );
+        }
+
         // Compare password
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
@@ -212,6 +221,28 @@ export const login = async (req, res) => {
         );
     } catch (err) {
         console.error('Login error:', err);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
+
+export const getUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) {
+            return sendErrorResponse(
+                res,
+                HTTPSTATUS.notFound.code,
+                'User not found'
+            );
+        }
+        return sendSuccessResponse(res, user, 'User fetched successfully');
+    } catch (err) {
+        console.error('Get user by ID error:', err);
         return sendErrorResponse(
             res,
             HTTPSTATUS.serverError.code,
