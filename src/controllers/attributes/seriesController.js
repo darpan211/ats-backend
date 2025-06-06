@@ -6,6 +6,8 @@ import {
 import { HTTPSTATUS } from '../../utils/constants.js';
 import seriesModel from '../../models/attribute/series.model.js';
 
+const normalizeSeries = (str) => str.trim().replace(/\s+/g, ' ');
+
 export const createSeriesController = async (req, res) => {
     try {
         const { series } = req.body;
@@ -95,7 +97,25 @@ export const deleteSeriesController = async (req, res) => {
 export const updateSeriesController = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        let { series, ...rest } = req.body;
+
+        // If series is being updated, check for uniqueness
+        if (series) {
+            series = normalizeSeries(series);
+            const existingSeries = await seriesModel.findOne({
+                series: { $regex: `^${series}$`, $options: 'i' },
+                _id: { $ne: id },
+            });
+            if (existingSeries) {
+                return sendErrorResponse(
+                    res,
+                    400,
+                    'This series already exists'
+                );
+            }
+        }
+
+        const updateData = series ? { series, ...rest } : { ...rest };
 
         const updatedSeries = await seriesModel.findByIdAndUpdate(
             id,

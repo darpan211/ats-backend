@@ -98,44 +98,52 @@ export const updateSizesController = async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
-        // Recalculate `sizes` if height or width is updated
+        // If height or width is being updated, check for uniqueness
         if (updateData.height || updateData.width) {
             const existing = await sizesModel.findById(id);
             if (!existing) {
                 return sendErrorResponse(
                     res,
                     HTTPSTATUS.notFound.code,
-                    'material not found'
+                    'size not found'
                 );
             }
 
             const updatedHeight = updateData.height || existing.height;
             const updatedWidth = updateData.width || existing.width;
+
+            // Check if another size with the same height and width exists
+            const duplicate = await sizesModel.findOne({
+                height: updatedHeight,
+                width: updatedWidth,
+                _id: { $ne: id },
+            });
+            if (duplicate) {
+                return sendErrorResponse(res, 400, 'This size already exists');
+            }
+
             updateData.sizes = `${updatedHeight} X ${updatedWidth}`;
         }
-        const updateSizesController = await sizesModel.findByIdAndUpdate(
-            id,
-            updateData,
-            {
-                new: true,
-                runValidators: true,
-            }
-        );
 
-        if (!updateSizesController) {
+        const updatedSize = await sizesModel.findByIdAndUpdate(id, updateData, {
+            new: true,
+            runValidators: true,
+        });
+
+        if (!updatedSize) {
             return sendErrorResponse(
                 res,
                 HTTPSTATUS.notFound.code,
-                'material not found'
+                'size not found'
             );
         }
         return sendSuccessResponse(
             res,
-            updateSizesController,
-            'material updated successfully'
+            updatedSize,
+            'size updated successfully'
         );
     } catch (error) {
-        console.error('Update mterial Error:', error);
+        console.error('Update size Error:', error);
         return sendErrorResponse(
             res,
             HTTPSTATUS.serverError.code,

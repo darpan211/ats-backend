@@ -6,6 +6,8 @@ import {
 import { HTTPSTATUS } from '../../utils/constants.js';
 import suitablePlaceModel from '../../models/attribute/suitablePlace.model.js';
 
+const normalizeSeries = (str) => str.trim().replace(/\s+/g, ' ');
+
 export const createSuitablePlaceController = async (req, res) => {
     try {
         const { suitablePlace } = req.body;
@@ -126,15 +128,38 @@ export const deleteSuitablePlaceController = async (req, res) => {
 export const updateSuitablePlaceController = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        let { suitablePlace, ...rest } = req.body;
 
-        const updateSuitablePlaceController =
-            await suitablePlaceModel.findByIdAndUpdate(id, updateData, {
+        // If suitablePlace is being updated, check for uniqueness
+        if (suitablePlace) {
+            suitablePlace = normalizeSeries(suitablePlace);
+            const existingPlace = await suitablePlaceModel.findOne({
+                suitablePlace: { $regex: `^${suitablePlace}$`, $options: 'i' },
+                _id: { $ne: id },
+            });
+            if (existingPlace) {
+                return sendErrorResponse(
+                    res,
+                    400,
+                    'This suitablePlace already exists'
+                );
+            }
+        }
+
+        const updateData = suitablePlace
+            ? { suitablePlace, ...rest }
+            : { ...rest };
+
+        const updatedSuitablePlace = await suitablePlaceModel.findByIdAndUpdate(
+            id,
+            updateData,
+            {
                 new: true,
                 runValidators: true,
-            });
+            }
+        );
 
-        if (!updateSuitablePlaceController) {
+        if (!updatedSuitablePlace) {
             return sendErrorResponse(
                 res,
                 HTTPSTATUS.notFound.code,
@@ -143,7 +168,7 @@ export const updateSuitablePlaceController = async (req, res) => {
         }
         return sendSuccessResponse(
             res,
-            updateSuitablePlaceController,
+            updatedSuitablePlace,
             'suitablePlace updated successfully'
         );
     } catch (error) {
