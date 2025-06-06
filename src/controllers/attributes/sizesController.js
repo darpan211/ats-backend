@@ -1,4 +1,8 @@
-import { sendErrorResponse, sendSuccessResponse } from '../../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../../utils/helper.js';
 import { HTTPSTATUS } from '../../utils/constants.js';
 import sizesModel from '../../models/attribute/sizes.model.js';
 
@@ -6,6 +10,13 @@ export const createSizesController = async (req, res) => {
     try {
         const { height, width } = req.body;
         const sizes = `${height} X ${width}`;
+
+        // Check if size already exists
+        const existingSize = await sizesModel.findOne({ height, width });
+        if (existingSize) {
+            return sendErrorResponse(res, 400, 'This size already exists');
+        }
+
         const newSizes = new sizesModel({ height, width, sizes });
         await newSizes.save();
 
@@ -22,12 +33,10 @@ export const createSizesController = async (req, res) => {
 
 export const getSizesController = async (req, res) => {
     try {
-        const sizesController = await sizesModel.find();
-        return sendSuccessResponse(
-            res,
-            sizesController,
-            'sizes fetched successfully'
-        );
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(sizesModel, {}, page, limit);
+        return sendSuccessResponse(res, result, 'sizes fetched successfully');
     } catch (err) {
         console.error('Get sizes Error:', err);
     }

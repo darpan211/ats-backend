@@ -1,9 +1,21 @@
-import { sendErrorResponse, sendSuccessResponse } from '../../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../../utils/helper.js';
 import { HTTPSTATUS } from '../../utils/constants.js';
 import colorsModel from '../../models/attribute/colors.model.js';
 export const createColorsController = async (req, res) => {
     try {
         const { colors } = req.body;
+
+        // Check if the color already exists (case-insensitive)
+        const existingColor = await colorsModel.findOne({
+            colors: { $regex: `^${colors}$`, $options: 'i' },
+        });
+        if (existingColor) {
+            return sendErrorResponse(res, 400, 'This color already exists');
+        }
 
         const newColors = new colorsModel({ colors });
         await newColors.save();
@@ -21,12 +33,10 @@ export const createColorsController = async (req, res) => {
 
 export const getColorsController = async (req, res) => {
     try {
-        const ColorsCantroller = await colorsModel.find();
-        return sendSuccessResponse(
-            res,
-            ColorsCantroller,
-            'colors fetched successfully'
-        );
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(colorsModel, {}, page, limit);
+        return sendSuccessResponse(res, result, 'colors fetched successfully');
     } catch (err) {
         console.error('Get colors Error:', err);
     }

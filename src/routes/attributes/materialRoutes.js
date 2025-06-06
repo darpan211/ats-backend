@@ -14,7 +14,7 @@ const router = express.Router();
 router.post(
     '/addmaterial',
     authenticateToken,
-    authorizeRoles('admin', 'superadmin'),
+    authorizeRoles('admin', 'superadmin', 'seller'),
     createMaterialController
 );
 router.get(

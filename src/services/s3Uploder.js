@@ -19,12 +19,27 @@ export const uploadToS3 = async (file) => {
             Key: s3Key,
             Body: fileContent,
             ContentType: file.mimetype,
-            ACL: 'public-read',
         };
         const uploadResult = await s3.upload(params).promise();
         return uploadResult.Location;
     } catch (error) {
         console.error('S3 Upload Error:', error);
         throw new Error('Failed to upload file to S3');
+    }
+};
+
+export const deleteFromS3 = async (imageUrl) => {
+    try {
+        // Extract the S3 key from the URL
+        const url = new URL(imageUrl);
+        const key = decodeURIComponent(url.pathname.substring(1));
+        const params = {
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+        };
+        await s3.deleteObject(params).promise();
+    } catch (error) {
+        console.error('S3 Delete Error:', error);
+        throw new Error('Failed to delete file from S3');
     }
 };

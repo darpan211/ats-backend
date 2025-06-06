@@ -1,10 +1,14 @@
-import { sendErrorResponse, sendSuccessResponse } from '../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../utils/helper.js';
 import { HTTPSTATUS } from '../utils/constants.js';
 import path from 'path';
 import fs from 'fs';
 import Tiles from '../models/tiles.model.js';
 import getColors from 'get-image-colors';
-import { uploadToS3 } from '../services/s3Uploder.js';
+import { uploadToS3, deleteFromS3 } from '../services/s3Uploder.js';
 
 const getImageColors = async (imagePath) => {
     try {
@@ -20,6 +24,7 @@ const getImageColors = async (imagePath) => {
 
 export const addTiles = async (req, res) => {
     try {
+        const userId = req.user.userId;
         const {
             tiles_name,
             description,
@@ -28,11 +33,19 @@ export const addTiles = async (req, res) => {
             suitable_place,
             size,
             status,
+            thickness,
         } = req.body;
-        const tiles_image = req.file;
-        const colorResponse = await getImageColors(tiles_image.path);
-        const imageUrl = await uploadToS3(tiles_image);
-        fs.unlinkSync(tiles_image);
+        const tiles_image = req.files;
+
+        const colorResponses = [];
+        const imageUrls = [];
+        for (const image of tiles_image) {
+            const color = await getImageColors(image.path);
+            colorResponses.push(color);
+            const imageUrl = await uploadToS3(image);
+            imageUrls.push(imageUrl);
+            fs.unlinkSync(image.path);
+        }
         await Tiles.create({
             tiles_name,
             description,
@@ -40,9 +53,11 @@ export const addTiles = async (req, res) => {
             category,
             suitable_place,
             size,
-            tiles_color: colorResponse,
-            tiles_image: imageUrl,
+            tiles_color: colorResponses,
+            tiles_image: imageUrls,
             status,
+            thickness,
+            created_by: userId,
         });
 
         return sendSuccessResponse(res, 'Tiles added successfully');
@@ -58,8 +73,10 @@ export const addTiles = async (req, res) => {
 
 export const getTiles = async (req, res) => {
     try {
-        const tiles = await Tiles.find();
-        return sendSuccessResponse(res, tiles, 'Tiles fetched successfully');
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(Tiles, {}, page, limit);
+        return sendSuccessResponse(res, result, 'Tiles fetched successfully');
     } catch (error) {
         console.error('Get Tiles Error:', error);
         return sendErrorResponse(
@@ -95,18 +112,32 @@ export const getTilesById = async (req, res) => {
 export const deleteTiles = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedTiles = await Tiles.findByIdAndDelete(id);
-        if (!deletedTiles) {
+        const tile = await Tiles.findById(id);
+        if (!tile) {
             return sendErrorResponse(
                 res,
                 HTTPSTATUS.notFound.code,
                 'Tiles not found'
             );
         }
+
+        // 2. Delete all images from S3
+        if (tile.tiles_image && tile.tiles_image.length > 0) {
+            const imagesToDelete = Array.isArray(tile.tiles_image)
+                ? tile.tiles_image
+                : [tile.tiles_image];
+            for (const imgUrl of imagesToDelete) {
+                await deleteFromS3(imgUrl);
+            }
+        }
+
+        // 3. Delete the tile from DB
+        await Tiles.findByIdAndDelete(id);
+
         return sendSuccessResponse(
             res,
-            deletedTiles,
-            'Tiles deleted successfully'
+            tile,
+            'Tiles and images deleted successfully'
         );
     } catch (error) {
         console.error('Delete Tiles Error:', error);
@@ -128,6 +159,8 @@ export const updateTiles = async (req, res) => {
             category,
             suitable_place,
             size,
+            status,
+            thickness,
         } = req.body;
         const tiles_image = req.file;
 
@@ -138,14 +171,31 @@ export const updateTiles = async (req, res) => {
             category,
             suitable_place,
             size,
+            status,
+            thickness,
         };
 
         if (tiles_image) {
+            const oldTile = await Tiles.findById(id);
+            if (
+                oldTile &&
+                oldTile.tiles_image &&
+                oldTile.tiles_image.length > 0
+            ) {
+                const imagesToDelete = Array.isArray(oldTile.tiles_image)
+                    ? oldTile.tiles_image
+                    : [oldTile.tiles_image];
+                for (const imgUrl of imagesToDelete) {
+                    await deleteFromS3(imgUrl);
+                }
+            }
+
             const colorResponse = await getImageColors(tiles_image.path);
             const imageUrl = await uploadToS3(tiles_image);
-            fs.unlinkSync(tiles_image);
+            fs.unlinkSync(tiles_image.path);
+
             updateData.tiles_color = colorResponse;
-            updateData.tiles_image = imageUrl;
+            updateData.tiles_image = [imageUrl];
         }
 
         const updatedTiles = await Tiles.findByIdAndUpdate(id, updateData, {
@@ -177,6 +227,7 @@ export const updateTiles = async (req, res) => {
 
 export const filterTiles = async (req, res) => {
     try {
+        const userId = req.user.userId;
         const {
             tiles_name,
             description,
@@ -197,7 +248,10 @@ export const filterTiles = async (req, res) => {
         if (suitable_place)
             filter.suitable_place = { $regex: suitable_place, $options: 'i' };
         if (size) filter.size = { $regex: size, $options: 'i' };
-        const tiles = await Tiles.find(filter);
+
+        const tiles = await Tiles.find(filter)
+            .where('created_by')
+            .equals(userId);
 
         if (tiles.length === 0) {
             return sendSuccessResponse(
@@ -210,6 +264,80 @@ export const filterTiles = async (req, res) => {
         return sendSuccessResponse(res, tiles, 'Tiles filtered successfully');
     } catch (error) {
         console.error('Filter Tiles Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+};
+
+export const getFilteredTiles = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const seller_add_details = await Tiles.find({ created_by: userId });
+
+        if (!seller_add_details || seller_add_details.length === 0) {
+            return sendSuccessResponse(res, [], 'No tiles found for the user');
+        }
+
+        const uniqueTilesName = [
+            ...new Set(
+                seller_add_details
+                    .map((tile) => tile.tiles_name)
+                    .filter(Boolean)
+            ),
+        ];
+        const uniqueDescription = [
+            ...new Set(
+                seller_add_details
+                    .map((tile) => tile.description)
+                    .filter(Boolean)
+            ),
+        ];
+        const uniqueCategories = [
+            ...new Set(
+                seller_add_details.map((tile) => tile.category).filter(Boolean)
+            ),
+        ];
+        const uniqueSeries = [
+            ...new Set(
+                seller_add_details.map((tile) => tile.series).filter(Boolean)
+            ),
+        ];
+        const uniqueSize = [
+            ...new Set(
+                seller_add_details.map((tile) => tile.size).filter(Boolean)
+            ),
+        ];
+        const uniqueSuitable_place = [
+            ...new Set(
+                seller_add_details
+                    .map((tile) => tile.suitable_place)
+                    .filter(Boolean)
+            ),
+        ];
+        const uniqueThickness = [
+            ...new Set(
+                seller_add_details.map((tile) => tile.thickness).filter(Boolean)
+            ),
+        ];
+
+        return sendSuccessResponse(
+            res,
+            {
+                tiles_name: uniqueTilesName,
+                categories: uniqueCategories,
+                series: uniqueSeries,
+                description: uniqueDescription,
+                size: uniqueSize,
+                suitable_place: uniqueSuitable_place,
+                thickness: uniqueThickness,
+            },
+            'Unique data fetched successfully'
+        );
+    } catch (error) {
+        console.error('Get Filtered Tiles Error:', error);
         return sendErrorResponse(
             res,
             HTTPSTATUS.serverError.code,

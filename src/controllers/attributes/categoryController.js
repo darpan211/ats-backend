@@ -1,10 +1,22 @@
 import Attribute from '../../models/attribute/category.model.js';
-import { sendErrorResponse, sendSuccessResponse } from '../../utils/helper.js';
+import {
+    sendErrorResponse,
+    sendSuccessResponse,
+    paginate,
+} from '../../utils/helper.js';
 import { HTTPSTATUS } from '../../utils/constants.js';
 
 export const createCategoryController = async (req, res) => {
     try {
         const { category } = req.body;
+
+        // Check if the category already exists (case-insensitive)
+        const existingCategory = await Attribute.findOne({
+            category: { $regex: `^${category}$`, $options: 'i' },
+        });
+        if (existingCategory) {
+            return sendErrorResponse(res, 400, 'This category already exists');
+        }
 
         const newCategory = new Attribute({ category });
         await newCategory.save();
@@ -15,7 +27,7 @@ export const createCategoryController = async (req, res) => {
             'Category added successfully'
         );
     } catch (error) {
-        console.error('❌ Create Category Error:', error);
+        console.error('Create Category Error:', error);
         return sendErrorResponse(
             res,
             HTTPSTATUS.serverError.code,
@@ -26,10 +38,12 @@ export const createCategoryController = async (req, res) => {
 
 export const getCategoryController = async (req, res) => {
     try {
-        const CategoryController = await Attribute.find();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const result = await paginate(Attribute, {}, page, limit);
         return sendSuccessResponse(
             res,
-            CategoryController,
+            result,
             'category fetched successfully'
         );
     } catch (err) {
