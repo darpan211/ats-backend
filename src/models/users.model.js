@@ -9,7 +9,12 @@ const userSchema = new mongoose.Schema(
         password_hash: String,
         role: {
             type: String,
-            enum: ['admin', 'superadmin', 'seller', 'retailer'],
+            enum: ['admin', 'superadmin', 'seller'],
+            required: true,
+        },
+        seller_type: {
+            type: String,
+            enum: ['retailer', 'distributer', 'supplier'],
             required: true,
         },
         status: {

@@ -11,15 +11,16 @@ import { validate } from '../../middlewares/validate.middleware.js';
 import {
     loginSchema,
     registerSchema,
+    updateSchema,
 } from '../../validations/auth.validation.js';
 
 const router = express.Router();
 
 router.post('/register', validate({ body: registerSchema }), register);
 router.get('/getUser', getUsers);
-router.put('/updateuser/:id', validate({ body: registerSchema }), updateUser);
-router.delete('/deleteuser/:id', deleteUser);
+router.put('/updateUser/:id', validate({ body: updateSchema }), updateUser);
+router.delete('/deleteUser/:id', deleteUser);
 
 router.post('/login', validate({ body: loginSchema }), login);
-router.get('/getuserbyId/:id', getUserById);
+router.get('/getUserById/:id', getUserById);
 export default router;
