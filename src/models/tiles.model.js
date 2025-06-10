@@ -30,13 +30,11 @@ const addTiles = new mongoose.Schema(
             type: String,
             required: true,
         },
-        tiles_image: [
-            {
-                type: String,
-                required: true,
-            },
-        ],
-        tiles_color: [{ type: String, default: null }],
+        tiles_image: {
+            type: String,
+            required: true,
+        },
+        tiles_color: { type: String, default: null },
         status: {
             type: String,
             enum: ['active', 'inactive'],

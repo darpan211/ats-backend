@@ -27,6 +27,7 @@ export const createAdmin = async (req, res) => {
             admin_name,
             email,
             password,
+            role,
         });
         await newUser.save();
 

@@ -9,11 +9,11 @@ const s3 = new AWS.S3({
     region: process.env.AWS_REGION,
 });
 
-export const uploadToS3 = async (file) => {
+const uploadFile = async (file, folder) => {
     try {
         const fileContent = fs.readFileSync(file.path);
         const fileExt = path.extname(file.originalname);
-        const s3Key = `tiles/${uuidv4()}${fileExt}`;
+        const s3Key = `${folder}/${uuidv4()}${fileExt}`;
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: s3Key,
@@ -27,6 +27,9 @@ export const uploadToS3 = async (file) => {
         throw new Error('Failed to upload file to S3');
     }
 };
+
+export const uploadToS3 = (file) => uploadFile(file, 'tiles');
+export const uploadToRoomsS3 = (file) => uploadFile(file, 'rooms');
 
 export const deleteFromS3 = async (imageUrl) => {
     try {

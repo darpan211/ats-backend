@@ -25,7 +25,8 @@ const getImageColors = async (imagePath) => {
 export const addTiles = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const {
+        // Expecting tiles_name and thickness as arrays if multiple images
+        let {
             tiles_name,
             description,
             series,
@@ -36,31 +37,39 @@ export const addTiles = async (req, res) => {
             thickness,
         } = req.body;
         const tiles_image = req.files;
+        const tilesName = tiles_name.split(',');
+        const tilesThickness = thickness.split(',');
+        const createdTiles = [];
 
-        const colorResponses = [];
-        const imageUrls = [];
-        for (const image of tiles_image) {
+        for (let i = 0; i < tiles_image.length; i++) {
+            const image = tiles_image[i];
             const color = await getImageColors(image.path);
-            colorResponses.push(color);
+            console.log('tiles', color);
             const imageUrl = await uploadToS3(image);
-            imageUrls.push(imageUrl);
             fs.unlinkSync(image.path);
-        }
-        await Tiles.create({
-            tiles_name,
-            description,
-            series,
-            category,
-            suitable_place,
-            size,
-            tiles_color: colorResponses,
-            tiles_image: imageUrls,
-            status,
-            thickness,
-            created_by: userId,
-        });
 
-        return sendSuccessResponse(res, 'Tiles added successfully');
+            const tile = await Tiles.create({
+                tiles_name: tilesName[i] || tilesName[0],
+                description,
+                series,
+                category,
+                suitable_place,
+                size,
+                tiles_color: color,
+                tiles_image: imageUrl,
+                status,
+                thickness: tilesThickness[i] || tilesThickness[0],
+                created_by: userId,
+            });
+
+            createdTiles.push(tile);
+        }
+
+        return sendSuccessResponse(
+            res,
+            createdTiles,
+            'Tiles added successfully'
+        );
     } catch (error) {
         console.error('Add Tiles Error', error);
         return sendErrorResponse(
