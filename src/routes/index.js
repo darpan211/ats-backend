@@ -9,6 +9,7 @@ import colorsRoutes from './attributes/colorsRoutes.js';
 import suitablePlaceRoutes from '../routes/attributes/suitablePlaceRoutes.js';
 import addTiles from './tilesRoutes.js';
 import admin from './adminRoutes.js';
+import finish from './attributes/finishRoutes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -21,5 +22,6 @@ router.use('/colors', colorsRoutes);
 router.use('/suitablePlace', suitablePlaceRoutes);
 router.use('/tiles', addTiles);
 router.use('/admin', admin);
+router.use('/finish', finish);
 
 export default router;

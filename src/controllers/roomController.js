@@ -4,6 +4,8 @@ import {
     sendSuccessResponse,
     paginate,
 } from '../utils/helper.js';
+import fs from 'fs';
+import { uploadToRoomsS3, deleteFromS3 } from '../services/s3Uploder.js';
 import { HTTPSTATUS } from '../utils/constants.js';
 
 export const createRoom = async (req, res) => {
@@ -11,15 +13,16 @@ export const createRoom = async (req, res) => {
         const { template_name, category, room_type, status, description } =
             req.body;
 
-        const upload_image = req.file?.path;
-
+        const upload_image = req.file;
+        const imageUrl = await uploadToRoomsS3(upload_image);
+        fs.unlinkSync(upload_image.path);
         const newRoom = new Room({
             template_name,
             category,
             room_type,
             status,
             description,
-            upload_image,
+            upload_image: imageUrl,
         });
 
         await newRoom.save();
@@ -40,7 +43,10 @@ export const updateRoom = async (req, res) => {
         const updateData = req.body;
 
         if (req.file) {
-            updateData.upload_image = req.file.path;
+            const findUrl = await Room.findById(id);
+            await deleteFromS3(findUrl.upload_image);
+            updateData.upload_image = await uploadToRoomsS3(req.file);
+            fs.unlinkSync(req.file.path);
         }
 
         const updatedRoom = await Room.findByIdAndUpdate(id, updateData, {
