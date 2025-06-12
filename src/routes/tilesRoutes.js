@@ -8,6 +8,7 @@ import {
     updateTiles,
     filterTiles,
     getFilteredTiles,
+    uploadImage
 } from '../controllers/tilesController.js';
 import {
     authenticateToken,
@@ -58,6 +59,13 @@ router.get(
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
     getFilteredTiles
+);
+router.post(
+    '/upload',
+    authenticateToken,
+    authorizeRoles('admin', 'superadmin', 'seller'),
+    upload.array('tiles_image', 50),
+    uploadImage
 );
 
 export default router;
