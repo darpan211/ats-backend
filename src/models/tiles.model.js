@@ -8,19 +8,19 @@ const addTiles = new mongoose.Schema(
         },
         description: {
             type: String,
-            required: true,
+            // required: true,
         },
         series: [{
             type: String,
-            required: true,
+            // required: true,
         }],
         category: {
             type: String,
-            required: true,
+            // required: true,
         },
         suitable_place: [{
             type: String,
-            required: true,
+            // required: true,
         }],
         size: [{
             type: String,
@@ -40,11 +40,11 @@ const addTiles = new mongoose.Schema(
         },
         finish:[{
             type:String,
-            required: true
+            // required: true
         }],
         material:[{
             type:String,
-            required: true
+            // required: true
         }],
         status: {
             type: String,

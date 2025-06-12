@@ -27,7 +27,7 @@ router.put(
     '/updatetiles/:id',
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
-    upload.array('tiles_image', 100),
+    upload.single('tiles_image'),
     updateTiles
 );
 router.get(

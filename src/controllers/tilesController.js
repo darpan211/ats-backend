@@ -179,21 +179,8 @@ export const deleteTiles = async (req, res) => {
 export const updateTiles = async (req, res) => {
     try {
         const { id } = req.params;
-        let {
-            tiles_name,
-            description,
-            series,
-            category,
-            suitable_place,
-            size,
-            status,
-            thickness,
-            finish,
-            material,
-        } = req.body;
         const tiles_image = req.file;
-
-        // Parse comma-separated strings or JSON strings into arrays
+        // Only parse and add fields if they exist in req.body
         const parseToArray = (val) => {
             if (Array.isArray(val)) return val;
             if (typeof val === 'string') {
@@ -202,24 +189,32 @@ export const updateTiles = async (req, res) => {
             return [];
         };
 
-        series = parseToArray(series);
-        suitable_place = parseToArray(suitable_place);
-        size = parseToArray(size);
-        finish = parseToArray(finish);
-        material = parseToArray(material);
+        const updateData = {};
+        const fields = [
+            'tiles_name',
+            'description',
+            'series',
+            'category',
+            'suitable_place',
+            'size',
+            'status',
+            'thickness',
+            'finish',
+            'material',
+            'favorite',
+            'priority',
+        ];
 
-        const updateData = {
-            tiles_name,
-            description,
-            series,
-            category,
-            suitable_place,
-            size,
-            status,
-            thickness,
-            finish,
-            material,
-        };
+        for (const field of fields) {
+            if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+                // Parse array fields
+                if (['series', 'suitable_place', 'size', 'finish', 'material'].includes(field)) {
+                    updateData[field] = parseToArray(req.body[field]);
+                } else {
+                    updateData[field] = req.body[field];
+                }
+            }
+        }
 
         if (tiles_image) {
             const oldTile = await Tiles.findById(id);
@@ -235,13 +230,12 @@ export const updateTiles = async (req, res) => {
                     await deleteFromS3(imgUrl);
                 }
             }
-
             const colorResponse = await getImageColors(tiles_image.path);
             const imageUrl = await uploadToS3(tiles_image);
             fs.unlinkSync(tiles_image.path);
 
             updateData.tiles_color = colorResponse;
-            updateData.tiles_image = [imageUrl];
+            updateData.tiles_image = imageUrl;
         }
 
         const updatedTiles = await Tiles.findByIdAndUpdate(id, updateData, {
