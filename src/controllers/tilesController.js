@@ -25,7 +25,6 @@ const getImageColors = async (imagePath) => {
 export const addTiles = async (req, res) => {
     try {
         const userId = req.user.userId;
-        // Expecting tiles_name and thickness as arrays if multiple images
         let {
             tiles_name,
             description,
@@ -35,16 +34,33 @@ export const addTiles = async (req, res) => {
             size,
             status,
             thickness,
+            finish,
+            material
         } = req.body;
         const tiles_image = req.files;
-        const tilesName = tiles_name.split(',');
-        const tilesThickness = thickness.split(',');
+        const parseToArray = (val) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === 'string') {
+                // Remove quotes and split by comma
+                return val.replace(/[\[\]"]+/g, '').split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return [];
+        };
+
+        series = parseToArray(series);
+        suitable_place = parseToArray(suitable_place);
+        size = parseToArray(size);
+        finish = parseToArray(finish);
+        material = parseToArray(material);
+
+        // For tiles_name and thickness, handle as before
+        const tilesName = parseToArray(tiles_name);
+        const tilesThickness = parseToArray(thickness);
         const createdTiles = [];
 
         for (let i = 0; i < tiles_image.length; i++) {
             const image = tiles_image[i];
             const color = await getImageColors(image.path);
-            console.log('tiles', color);
             const imageUrl = await uploadToS3(image);
             fs.unlinkSync(image.path);
 
@@ -59,6 +75,8 @@ export const addTiles = async (req, res) => {
                 tiles_image: imageUrl,
                 status,
                 thickness: tilesThickness[i] || tilesThickness[0],
+                finish,
+                material,
                 created_by: userId,
             });
 
@@ -161,7 +179,7 @@ export const deleteTiles = async (req, res) => {
 export const updateTiles = async (req, res) => {
     try {
         const { id } = req.params;
-        const {
+        let {
             tiles_name,
             description,
             series,
@@ -170,8 +188,25 @@ export const updateTiles = async (req, res) => {
             size,
             status,
             thickness,
+            finish,
+            material,
         } = req.body;
         const tiles_image = req.file;
+
+        // Parse comma-separated strings or JSON strings into arrays
+        const parseToArray = (val) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === 'string') {
+                return val.replace(/[\[\]"]+/g, '').split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return [];
+        };
+
+        series = parseToArray(series);
+        suitable_place = parseToArray(suitable_place);
+        size = parseToArray(size);
+        finish = parseToArray(finish);
+        material = parseToArray(material);
 
         const updateData = {
             tiles_name,
@@ -182,6 +217,8 @@ export const updateTiles = async (req, res) => {
             size,
             status,
             thickness,
+            finish,
+            material,
         };
 
         if (tiles_image) {
@@ -354,3 +391,24 @@ export const getFilteredTiles = async (req, res) => {
         );
     }
 };
+
+export const uploadImage = async (req, res) => {
+    try {
+        const tiles_image = req.files;
+        let colors = [];
+        for (let i = 0; i < tiles_image.length; i++) {
+            const image = tiles_image[i];
+            const color = await getImageColors(image.path);
+            colors.push(color)
+            fs.unlinkSync(image.path);
+        }
+        return sendSuccessResponse(res, colors, 'Tiles filtered successfully');
+    } catch (error) {
+        console.error('Get upload Image Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.code,
+            HTTPSTATUS.serverError.message
+        );
+    }
+}

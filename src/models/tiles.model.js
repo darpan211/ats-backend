@@ -10,22 +10,22 @@ const addTiles = new mongoose.Schema(
             type: String,
             required: true,
         },
-        series: {
+        series: [{
             type: String,
             required: true,
-        },
+        }],
         category: {
             type: String,
             required: true,
         },
-        suitable_place: {
+        suitable_place: [{
             type: String,
             required: true,
-        },
-        size: {
+        }],
+        size: [{
             type: String,
             required: true,
-        },
+        }],
         thickness: {
             type: String,
             required: true,
@@ -34,7 +34,18 @@ const addTiles = new mongoose.Schema(
             type: String,
             required: true,
         },
-        tiles_color: { type: String, default: null },
+        tiles_color: {
+            type: String,
+            default: null
+        },
+        finish:[{
+            type:String,
+            required: true
+        }],
+        material:[{
+            type:String,
+            required: true
+        }],
         status: {
             type: String,
             enum: ['active', 'inactive'],
