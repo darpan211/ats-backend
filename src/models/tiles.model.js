@@ -34,10 +34,13 @@ const addTiles = new mongoose.Schema(
             type: String,
             required: true,
         },
-        tiles_color: {
-            type: String,
-            default: null
-        },
+        tiles_color: [
+            {
+                color_code: { type: String, default: null },
+                color_name: { type: String, default: null },
+                _id: false
+            }
+        ],
         finish:[{
             type:String,
             // required: true
