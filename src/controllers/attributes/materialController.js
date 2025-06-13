@@ -45,8 +45,13 @@ export const getMaterialController = async (req, res) => {
             result,
             'material fetched successfully'
         );
-    } catch (err) {
-        console.error('Get material Error:', err);
+    } catch (error) {
+        console.error('Get material Error:', error);
+        return sendErrorResponse(
+            res,
+            HTTPSTATUS.serverError.Error.code,
+            HTTPSTATUS.serverError.Error.message
+        );
     }
 };
 

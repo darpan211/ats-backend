@@ -8,14 +8,16 @@ import path from 'path';
 import fs from 'fs';
 import Tiles from '../models/tiles.model.js';
 import getColors from 'get-image-colors';
+import namer from 'color-namer';
 import { uploadToS3, deleteFromS3 } from '../services/s3Uploder.js';
 
 const getImageColors = async (imagePath) => {
     try {
         const filePath = path.join(imagePath);
         const colors = await getColors(filePath);
-        const majorityColor = colors[0].hex();
-        return majorityColor;
+        const majorityColorHex = colors[0].hex();
+        const colorName = namer(majorityColorHex).basic[0].name; // You can use 'ntc', 'pantone', etc.
+        return { color_code: majorityColorHex, color_name: colorName };
     } catch (error) {
         console.error('Error processing image:', error);
         throw new Error('Failed to process image');
@@ -71,7 +73,7 @@ export const addTiles = async (req, res) => {
                 category,
                 suitable_place,
                 size,
-                tiles_color: color,
+                tiles_color: [color],
                 tiles_image: imageUrl,
                 status,
                 thickness: tilesThickness[i] || tilesThickness[0],
@@ -396,7 +398,7 @@ export const uploadImage = async (req, res) => {
             colors.push(color)
             fs.unlinkSync(image.path);
         }
-        return sendSuccessResponse(res, colors, 'Tiles filtered successfully');
+        return sendSuccessResponse(res, colors, 'Tiles color fetched successfully');
     } catch (error) {
         console.error('Get upload Image Error:', error);
         return sendErrorResponse(
