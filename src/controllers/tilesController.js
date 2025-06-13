@@ -10,6 +10,7 @@ import Tiles from '../models/tiles.model.js';
 import getColors from 'get-image-colors';
 import namer from 'color-namer';
 import { uploadToS3, deleteFromS3 } from '../services/s3Uploder.js';
+import mongoose from 'mongoose';
 
 const getImageColors = async (imagePath) => {
     try {
@@ -92,22 +93,6 @@ export const addTiles = async (req, res) => {
         );
     } catch (error) {
         console.error('Add Tiles Error', error);
-        return sendErrorResponse(
-            res,
-            HTTPSTATUS.serverError.code,
-            HTTPSTATUS.serverError.message
-        );
-    }
-};
-
-export const getTiles = async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const result = await paginate(Tiles, {}, page, limit);
-        return sendSuccessResponse(res, result, 'Tiles fetched successfully');
-    } catch (error) {
-        console.error('Get Tiles Error:', error);
         return sendErrorResponse(
             res,
             HTTPSTATUS.serverError.code,
@@ -212,6 +197,9 @@ export const updateTiles = async (req, res) => {
                 // Parse array fields
                 if (['series', 'suitable_place', 'size', 'finish', 'material'].includes(field)) {
                     updateData[field] = parseToArray(req.body[field]);
+                } else if (field === 'favorite') {
+                    const val = req.body[field];
+                    updateData[field] = val === 'true' || val === true;
                 } else {
                     updateData[field] = req.body[field];
                 }
@@ -267,7 +255,7 @@ export const updateTiles = async (req, res) => {
     }
 };
 
-export const filterTiles = async (req, res) => {
+export const getTiles = async (req, res) => {
     try {
         const userId = req.user.userId;
         const {
@@ -277,33 +265,98 @@ export const filterTiles = async (req, res) => {
             category,
             suitable_place,
             size,
+            status,
+            favorite,
+            order = "desc",
+            sort_by,
+            page = 1,
+            limit = 10,
         } = req.query;
 
-        // Build dynamic filter object
+        const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
         const filter = {};
-        if (tiles_name)
-            filter.tiles_name = { $regex: tiles_name, $options: 'i' };
-        if (description)
-            filter.description = { $regex: description, $options: 'i' };
+        if (tiles_name) filter.tiles_name = { $regex: tiles_name, $options: 'i' };
+        if (description) filter.description = { $regex: description, $options: 'i' };
         if (series) filter.series = { $regex: series, $options: 'i' };
         if (category) filter.category = { $regex: category, $options: 'i' };
-        if (suitable_place)
-            filter.suitable_place = { $regex: suitable_place, $options: 'i' };
+        if (suitable_place) filter.suitable_place = { $regex: suitable_place, $options: 'i' };
         if (size) filter.size = { $regex: size, $options: 'i' };
+        if (status) filter.status = status;
+        if (favorite !== undefined) filter.favorite = favorite === 'true';
 
-        const tiles = await Tiles.find(filter)
-            .where('created_by')
-            .equals(userId);
+        const userFilter = { ...filter, created_by: new mongoose.Types.ObjectId(userId) };
 
-        if (tiles.length === 0) {
-            return sendSuccessResponse(
-                res,
-                [],
-                'No tiles found matching the filter criteria',
-                200
-            );
+        let tiles = [];
+        let total = 0;
+
+        if (sort_by === "name") {
+            total = await Tiles.countDocuments(userFilter);
+            tiles = await Tiles.aggregate([
+                { $match: userFilter },
+                { $sort: { tiles_name: 1 } },
+                { $skip: skip },
+                { $limit: parseInt(limit) }
+            ]);
+        } else if (sort_by === "priority") {
+            const aggregatePipeline = [
+                { $match: userFilter },
+                {
+                    $addFields: {
+                        priorityOrder: {
+                            $switch: {
+                                branches: [
+                                    { case: { $eq: ["$priority", "high"] }, then: 1 },
+                                    { case: { $eq: ["$priority", "medium"] }, then: 2 },
+                                    { case: { $eq: ["$priority", "low"] }, then: 3 }
+                                ],
+                                default: 4
+                            }
+                        }
+                    }
+                },
+                { $sort: { priorityOrder: 1 } },
+                { $skip: skip },
+                { $limit: parseInt(limit) }
+            ];
+
+            const countPipeline = [
+                { $match: userFilter },
+                {
+                    $addFields: {
+                        priorityOrder: {
+                            $switch: {
+                                branches: [
+                                    { case: { $eq: ["$priority", "high"] }, then: 1 },
+                                    { case: { $eq: ["$priority", "medium"] }, then: 2 },
+                                    { case: { $eq: ["$priority", "low"] }, then: 3 }
+                                ],
+                                default: 4
+                            }
+                        }
+                    }
+                },
+                { $count: "total" }
+            ];
+
+            const countResult = await Tiles.aggregate(countPipeline);
+            total = countResult[0]?.total || 0;
+            tiles = await Tiles.aggregate(aggregatePipeline);
+        } else {
+            total = await Tiles.countDocuments(userFilter);
+            tiles = await Tiles.find(userFilter)
+                .sort({ createdAt: sortOrder })
+                .skip(skip)
+                .limit(parseInt(limit));
         }
-        return sendSuccessResponse(res, tiles, 'Tiles filtered successfully');
+
+        return sendSuccessResponse(res, {
+            data: tiles,
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limit),
+            totalItems: total,
+        }, 'Tiles filtered successfully');
     } catch (error) {
         console.error('Filter Tiles Error:', error);
         return sendErrorResponse(
@@ -323,46 +376,48 @@ export const getFilteredTiles = async (req, res) => {
             return sendSuccessResponse(res, [], 'No tiles found for the user');
         }
 
-        const uniqueTilesName = [
-            ...new Set(
-                seller_add_details
-                    .map((tile) => tile.tiles_name)
-                    .filter(Boolean)
-            ),
-        ];
-        const uniqueDescription = [
-            ...new Set(
-                seller_add_details
-                    .map((tile) => tile.description)
-                    .filter(Boolean)
-            ),
-        ];
-        const uniqueCategories = [
-            ...new Set(
-                seller_add_details.map((tile) => tile.category).filter(Boolean)
-            ),
-        ];
+        // Helper to flatten nested arrays
+        const flatten = (arr) => arr.reduce((acc, val) => acc.concat(val), []);
+
+        // Get unique tile names
+        const uniqueTilesName = [...new Set(seller_add_details.map(tile => tile.tiles_name).filter(Boolean))];
+
+        const uniqueDescription = [...new Set(seller_add_details.map(tile => tile.description).filter(Boolean))];
+
+        const uniqueCategories = [...new Set(seller_add_details.map(tile => tile.category).filter(Boolean))];
+
+        // Flatten series arrays before deduplication
         const uniqueSeries = [
-            ...new Set(
-                seller_add_details.map((tile) => tile.series).filter(Boolean)
-            ),
+            ...new Set(flatten(seller_add_details.map(tile => tile.series || [])).filter(Boolean))
         ];
+
         const uniqueSize = [
-            ...new Set(
-                seller_add_details.map((tile) => tile.size).filter(Boolean)
-            ),
+            ...new Set(flatten(seller_add_details.map(tile => tile.size || [])).filter(Boolean))
         ];
+
         const uniqueSuitable_place = [
-            ...new Set(
-                seller_add_details
-                    .map((tile) => tile.suitable_place)
-                    .filter(Boolean)
-            ),
+            ...new Set(flatten(seller_add_details.map(tile => tile.suitable_place || [])).filter(Boolean))
         ];
+
         const uniqueThickness = [
+            ...new Set(seller_add_details.map(tile => tile.thickness).filter(Boolean))
+        ];
+
+        // Extract color_name from tiles_color array
+        const uniqueColorNames = [
             ...new Set(
-                seller_add_details.map((tile) => tile.thickness).filter(Boolean)
-            ),
+                flatten(seller_add_details.map(tile =>
+                    (tile.tiles_color || []).map(color => color.color_name)
+                )).filter(Boolean)
+            )
+        ];
+
+        const uniqueFinish = [
+            ...new Set(flatten(seller_add_details.map(tile => tile.finish || [])).filter(Boolean))
+        ];
+
+        const uniqueMaterial = [
+            ...new Set(flatten(seller_add_details.map(tile => tile.material || [])).filter(Boolean))
         ];
 
         return sendSuccessResponse(
@@ -375,6 +430,9 @@ export const getFilteredTiles = async (req, res) => {
                 size: uniqueSize,
                 suitable_place: uniqueSuitable_place,
                 thickness: uniqueThickness,
+                color: uniqueColorNames,
+                finish: uniqueFinish,
+                material: uniqueMaterial
             },
             'Unique data fetched successfully'
         );

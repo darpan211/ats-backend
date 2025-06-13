@@ -6,7 +6,6 @@ import {
     getTilesById,
     deleteTiles,
     updateTiles,
-    filterTiles,
     getFilteredTiles,
     uploadImage
 } from '../controllers/tilesController.js';
@@ -47,12 +46,6 @@ router.delete(
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
     deleteTiles
-);
-router.get(
-    '/filter',
-    authenticateToken,
-    authorizeRoles('admin', 'superadmin', 'seller'),
-    filterTiles
 );
 router.get(
     '/getfilteredtiles',
