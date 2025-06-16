@@ -273,7 +273,7 @@ export const getTiles = async (req, res) => {
             order = "desc",
             sort_by,
             page = 1,
-            limit = 10,
+            limit = 12
         } = req.query;
 
         const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
@@ -392,9 +392,9 @@ export const getTiles = async (req, res) => {
             currentPage: parseInt(page),
             totalPages: Math.ceil(total / limit),
             totalItems: total,
-        }, 'Tiles filtered successfully');
+        }, 'Tiles Get successfully');
     } catch (error) {
-        console.error('Filter Tiles Error:', error);
+        console.error('Get Tiles Error:', error);
         return sendErrorResponse(
             res,
             HTTPSTATUS.serverError.code,

@@ -27,9 +27,9 @@ const fileFilter = (req, file, cb) => {
     if (ext && mime) {
         cb(null, true);
     } else {
-        const error = new Error('Only image files are allowed. Supported formats: JPEG, JPG, PNG, and GIF.');
-        // error.code = 'INVALID_FILE_TYPE';
-        cb(error, false);
+        const error = new multer.MulterError('LIMIT_UNEXPECTED_FILE');
+        error.message = 'Only image files are allowed. Supported formats: JPEG, JPG, PNG, and GIF.';
+        cb(error);
     }
 };
 
