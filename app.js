@@ -21,14 +21,26 @@ app.use(express.json());
 
 app.use('/api/v1', router);
 app.use('/uploads', express.static('uploads'));
-// After all your routes
 app.use((err, req, res, next) => {
-    if (err instanceof multer.MulterError || err.message.startsWith('Only image files are allowed')) {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+                success: false,
+                message: 'File too large. Only files of 5MB or less are supported.'
+            });
+        }
         return res.status(400).json({
             success: false,
             message: err.message
         });
     }
+    if (err.message.startsWith('Only image files are allowed')) {
+        return res.status(400).json({
+            success: false,
+            message: err.message
+        });
+    }
+    next(err);
 });
 
 // Start server only after DB connection is successful
