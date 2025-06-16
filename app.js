@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { connectToDatabase, disconnectFromDatabase } from './db.config.js'; // adjust path if needed
 import router from './src/routes/index.js';
 import cors from 'cors';
-
+import multer from 'multer';
 dotenv.config();
 
 const app = express();
@@ -21,6 +21,15 @@ app.use(express.json());
 
 app.use('/api/v1', router);
 app.use('/uploads', express.static('uploads'));
+// After all your routes
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError || err.message.startsWith('Only image files are allowed')) {
+        return res.status(400).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
 
 // Start server only after DB connection is successful
 connectToDatabase()
