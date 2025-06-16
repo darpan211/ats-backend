@@ -27,7 +27,9 @@ const fileFilter = (req, file, cb) => {
     if (ext && mime) {
         cb(null, true);
     } else {
-        cb(new Error('Only image files are allowed'));
+        const error = new Error('Only image files are allowed. Supported formats: JPEG, JPG, PNG, and GIF.');
+        // error.code = 'INVALID_FILE_TYPE';
+        cb(error, false);
     }
 };
 

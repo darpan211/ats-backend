@@ -267,6 +267,9 @@ export const getTiles = async (req, res) => {
             size,
             status,
             favorite,
+            color_name,
+            finish,
+            material,
             order = "desc",
             sort_by,
             page = 1,
@@ -279,12 +282,45 @@ export const getTiles = async (req, res) => {
         const filter = {};
         if (tiles_name) filter.tiles_name = { $regex: tiles_name, $options: 'i' };
         if (description) filter.description = { $regex: description, $options: 'i' };
-        if (series) filter.series = { $regex: series, $options: 'i' };
+        if (series) {
+            if (Array.isArray(series)) {
+                filter.series = { $in: series };
+            } else {
+                filter.series = { $elemMatch: { $regex: series, $options: 'i' } };
+            }
+        }
         if (category) filter.category = { $regex: category, $options: 'i' };
-        if (suitable_place) filter.suitable_place = { $regex: suitable_place, $options: 'i' };
-        if (size) filter.size = { $regex: size, $options: 'i' };
+        if (suitable_place) {
+            if (Array.isArray(suitable_place)) {
+                filter.suitable_place = { $in: suitable_place };
+            } else {
+                filter.suitable_place = { $elemMatch: { $regex: suitable_place, $options: 'i' } };
+            }
+        }
+        if (size) {
+            if (Array.isArray(size)) {
+                filter.size = { $in: size };
+            } else {
+                filter.size = { $elemMatch: { $regex: size, $options: 'i' } };
+            }
+        }
+        if (finish) {
+            if (Array.isArray(finish)) {
+                filter.finish = { $in: finish };
+            } else {
+                filter.finish = { $elemMatch: { $regex: finish, $options: 'i' } };
+            }
+        }
+        if (material) {
+            if (Array.isArray(material)) {
+                filter.material = { $in: material };
+            } else {
+                filter.material = { $elemMatch: { $regex: material, $options: 'i' } };
+            }
+        }
         if (status) filter.status = status;
         if (favorite !== undefined) filter.favorite = favorite === 'true';
+        if (color_name) filter['tiles_color.color_name'] = { $regex: color_name, $options: 'i' };
 
         const userFilter = { ...filter, created_by: new mongoose.Types.ObjectId(userId) };
 

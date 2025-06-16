@@ -2,9 +2,15 @@ import mongoose from 'mongoose';
 
 const roomSchema = new mongoose.Schema(
     {
-        template_name: String,
+        template_name: {
+            type:String,
+            required:true
+        },
 
-        category: String,
+        category:{
+            type:String,
+            required:true
+        },
 
         room_type: {
             type: String,
@@ -23,6 +29,7 @@ const roomSchema = new mongoose.Schema(
 
         upload_image: {
             type: String,
+            required:true
         },
     },
     { timestamps: true }

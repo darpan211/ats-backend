@@ -10,10 +10,18 @@ import { HTTPSTATUS } from '../utils/constants.js';
 
 export const createRoom = async (req, res) => {
     try {
-        const { template_name, category, room_type, status, description } =
-            req.body;
-
+        const { template_name, category, room_type, status, description } = req.body;
         const upload_image = req.file;
+
+        // Validate required fields
+        if (!template_name || !category || !room_type || !upload_image) {
+            return sendErrorResponse(
+                res,
+                400,
+                'template_name, category, room_type, and upload_image are required'
+            );
+        }
+
         const imageUrl = await uploadToRoomsS3(upload_image);
         fs.unlinkSync(upload_image.path);
         const newRoom = new Room({
