@@ -262,20 +262,25 @@ export const getTiles = async (req, res) => {
             tiles_name,
             description,
             series,
-            category,
+            categories,
             suitable_place,
-            size,
+            sizes,
             status,
             favorite,
-            color_name,
-            finish,
-            material,
+            colors,
+            finishes,
+            materials,
             order = "desc",
             sort_by,
             page = 1,
             limit = 12
         } = req.query;
-
+        
+        const size = sizes
+        const color_name = colors
+        const finish =  finishes
+        const material = materials
+        const category = categories
         const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
