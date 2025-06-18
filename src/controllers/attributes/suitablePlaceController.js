@@ -45,7 +45,7 @@ export const createSuitablePlaceController = async (req, res) => {
 export const getSuitablePlaceController = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit)
         const result = await paginate(suitablePlaceModel, {}, page, limit);
 
         if (!result || result.length === 0) {

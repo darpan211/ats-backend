@@ -274,7 +274,7 @@ export const getTiles = async (req, res) => {
             sort_by,
             priority,
             page = 1,
-            limit = 12
+            limit
         } = req.query;
         
         const size = sizes
