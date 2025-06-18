@@ -283,18 +283,39 @@ export const getTiles = async (req, res) => {
         const category = categories
         const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
         const skip = (parseInt(page) - 1) * parseInt(limit);
+        const normalizeToArray = (val) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === 'string' && val.includes(',')) {
+                return val.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return val;
+        };
+        const normalizedSeries = normalizeToArray(series);
+        const normalizedFinish = normalizeToArray(finish)
+        const normalizedSize = normalizeToArray(size)
+        const normalizedMaterial = normalizeToArray(material)
+        const normalizedColor = normalizeToArray(color_name)
+        const normalizeCategory = normalizeToArray(category)
 
         const filter = {};
         if (tiles_name) filter.tiles_name = { $regex: tiles_name, $options: 'i' };
         if (description) filter.description = { $regex: description, $options: 'i' };
-        if (series) {
-            if (Array.isArray(series)) {
-                filter.series = { $in: series };
+        if (normalizedSeries) {
+            if (Array.isArray(normalizedSeries)) {
+                filter.series = { $in: normalizedSeries };
             } else {
-                filter.series = { $elemMatch: { $regex: series, $options: 'i' } };
+                filter.series = { $elemMatch: { $regex: normalizedSeries, $options: 'i' } };
             }
         }
-        if (category) filter.category = { $regex: category, $options: 'i' };
+        if (normalizeCategory) {
+            if (Array.isArray(normalizeCategory)) {
+                filter.$or = normalizeCategory.map(cat => ({
+                 category: { $regex: cat, $options: 'i' }
+                }));
+            } else {
+                filter.category = { $regex: normalizeCategory, $options: 'i' };
+            }
+        }
         if (suitable_place) {
             if (Array.isArray(suitable_place)) {
                 filter.suitable_place = { $in: suitable_place };
@@ -302,30 +323,38 @@ export const getTiles = async (req, res) => {
                 filter.suitable_place = { $elemMatch: { $regex: suitable_place, $options: 'i' } };
             }
         }
-        if (size) {
-            if (Array.isArray(size)) {
-                filter.size = { $in: size };
+        if (normalizedSize) {
+            if (Array.isArray(normalizedSize)) {
+                filter.size = { $in: normalizedSize };
             } else {
-                filter.size = { $elemMatch: { $regex: size, $options: 'i' } };
+                filter.size = { $elemMatch: { $regex: normalizedSize, $options: 'i' } };
             }
         }
-        if (finish) {
-            if (Array.isArray(finish)) {
-                filter.finish = { $in: finish };
+        if (normalizedFinish) {
+            if (Array.isArray(normalizedFinish)) {
+                filter.finish = { $in: normalizedFinish };
             } else {
-                filter.finish = { $elemMatch: { $regex: finish, $options: 'i' } };
+                filter.finish = { $elemMatch: { $regex: normalizedFinish, $options: 'i' } };
             }
         }
-        if (material) {
-            if (Array.isArray(material)) {
-                filter.material = { $in: material };
+        if (normalizedMaterial) {
+            if (Array.isArray(normalizedMaterial)) {
+                filter.material = { $in: normalizedMaterial };
             } else {
-                filter.material = { $elemMatch: { $regex: material, $options: 'i' } };
+                filter.material = { $elemMatch: { $regex: normalizedMaterial, $options: 'i' } };
             }
         }
         if (status) filter.status = status;
         if (favorite !== undefined) filter.favorite = favorite === 'true';
-        if (color_name) filter['tiles_color.color_name'] = { $regex: color_name, $options: 'i' };
+        if (normalizedColor) {
+    if (Array.isArray(normalizedColor)) {
+        filter.$or = normalizedColor.map(color => ({
+            'tiles_color.color_name': { $regex: color, $options: 'i' }
+        }));
+    } else {
+        filter['tiles_color.color_name'] = { $regex: normalizedColor, $options: 'i' };
+    }
+}
 
         const userFilter = { ...filter, created_by: new mongoose.Types.ObjectId(userId) };
 
