@@ -10,11 +10,16 @@ const app = express();
 const PORT = process.env.PORT || 3010;
 
 // Middleware
+const cors = require('cors');
+
 app.use(
-    cors({
-        origin: 'http://localhost:5173', // or use "*" if not restricted
-        credentials: true,
-    })
+  cors({
+    origin: [
+      'http://localhost:5173',
+      'https://atv-frontend-ten.vercel.app'
+    ],
+    credentials: true,
+  })
 );
 
 app.use(express.json());
