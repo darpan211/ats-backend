@@ -115,7 +115,7 @@ export const deleteRoom = async (req, res) => {
 export const getRooms = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit)
         const result = await paginate(Room, {}, page, limit);
         return sendSuccessResponse(res, result, 'Rooms fetched successfully');
     } catch (err) {

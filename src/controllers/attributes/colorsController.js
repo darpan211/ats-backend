@@ -34,7 +34,7 @@ export const createColorsController = async (req, res) => {
 export const getColorsController = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit)
         const result = await paginate(colorsModel, {}, page, limit);
         return sendSuccessResponse(res, result, 'colors fetched successfully');
     } catch (err) {

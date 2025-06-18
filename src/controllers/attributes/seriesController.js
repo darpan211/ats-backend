@@ -36,7 +36,7 @@ export const createSeriesController = async (req, res) => {
 export const getSeriesController = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit)
         const result = await paginate(seriesModel, {}, page, limit);
         return sendSuccessResponse(res, result, 'series fetched successfully');
     } catch (err) {

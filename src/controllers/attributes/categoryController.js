@@ -39,7 +39,7 @@ export const createCategoryController = async (req, res) => {
 export const getCategoryController = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit)
         const result = await paginate(Attribute, {}, page, limit);
         return sendSuccessResponse(
             res,

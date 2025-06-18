@@ -38,7 +38,7 @@ export const createMaterialController = async (req, res) => {
 export const getMaterialController = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit)
         const result = await paginate(materialModel, {}, page, limit);
         return sendSuccessResponse(
             res,
