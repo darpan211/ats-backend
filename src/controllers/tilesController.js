@@ -272,6 +272,7 @@ export const getTiles = async (req, res) => {
             materials,
             order = "desc",
             sort_by,
+            priority,
             page = 1,
             limit = 12
         } = req.query;
@@ -299,6 +300,7 @@ export const getTiles = async (req, res) => {
 
         const filter = {};
         if (tiles_name) filter.tiles_name = { $regex: tiles_name, $options: 'i' };
+        if (priority) filter.priority = {$regex: priority, $options: 'i'};
         if (description) filter.description = { $regex: description, $options: 'i' };
         if (normalizedSeries) {
             if (Array.isArray(normalizedSeries)) {
