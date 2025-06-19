@@ -13,7 +13,7 @@ app.use(
   cors({
     origin: [
       'http://localhost:5173',
-      'https://atv-frontend-two.vercel.app'
+      'https://atv-frontend-alpha.vercel.app'
     ],
     credentials: true,
   })
