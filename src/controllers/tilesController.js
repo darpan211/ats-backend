@@ -255,6 +255,14 @@ export const updateTiles = async (req, res) => {
     }
 };
 
+const normalizeToArray = (val) => {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val.includes(',')) {
+        return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return val;
+};
+
 export const getTiles = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -276,31 +284,24 @@ export const getTiles = async (req, res) => {
             page = 1,
             limit
         } = req.query;
-        
-        const size = sizes
-        const color_name = colors
-        const finish =  finishes
-        const material = materials
-        const category = categories
-        const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const normalizeToArray = (val) => {
-            if (Array.isArray(val)) return val;
-            if (typeof val === 'string' && val.includes(',')) {
-                return val.split(',').map(s => s.trim()).filter(Boolean);
-            }
-            return val;
-        };
-        const normalizedSeries = normalizeToArray(series);
-        const normalizedFinish = normalizeToArray(finish)
-        const normalizedSize = normalizeToArray(size)
-        const normalizedMaterial = normalizeToArray(material)
-        const normalizedColor = normalizeToArray(color_name)
-        const normalizeCategory = normalizeToArray(category)
 
+        // Normalize array-like query params
+        const size = normalizeToArray(sizes);
+        const color_name = normalizeToArray(colors);
+        const finish = normalizeToArray(finishes);
+        const material = normalizeToArray(materials);
+        const category = normalizeToArray(categories);
+        const normalizedSeries = normalizeToArray(series);
+        const normalizedSuitablePlace = normalizeToArray(suitable_place);
+
+        const sortOrder = order.toLowerCase() === "desc" ? -1 : 1;
+        const parsedLimit = parseInt(limit);
+        const useLimit = !isNaN(parsedLimit) && parsedLimit > 0;
+        const skip = useLimit ? (parseInt(page) - 1) * parsedLimit : 0;
+
+        // Build filter object
         const filter = {};
         if (tiles_name) filter.tiles_name = { $regex: tiles_name, $options: 'i' };
-        if (priority) filter.priority = {$regex: priority, $options: 'i'};
         if (description) filter.description = { $regex: description, $options: 'i' };
         if (normalizedSeries) {
             if (Array.isArray(normalizedSeries)) {
@@ -309,71 +310,73 @@ export const getTiles = async (req, res) => {
                 filter.series = { $elemMatch: { $regex: normalizedSeries, $options: 'i' } };
             }
         }
-        if (normalizeCategory) {
-            if (Array.isArray(normalizeCategory)) {
-                filter.$or = normalizeCategory.map(cat => ({
-                 category: { $regex: cat, $options: 'i' }
+        if (category) {
+            if (Array.isArray(category)) {
+                filter.$or = category.map(cat => ({
+                    category: { $regex: cat, $options: 'i' }
                 }));
             } else {
-                filter.category = { $regex: normalizeCategory, $options: 'i' };
+                filter.category = { $regex: category, $options: 'i' };
             }
         }
-        if (suitable_place) {
-            if (Array.isArray(suitable_place)) {
-                filter.suitable_place = { $in: suitable_place };
+        if (normalizedSuitablePlace) {
+            if (Array.isArray(normalizedSuitablePlace)) {
+                filter.suitable_place = { $in: normalizedSuitablePlace };
             } else {
-                filter.suitable_place = { $elemMatch: { $regex: suitable_place, $options: 'i' } };
+                filter.suitable_place = { $elemMatch: { $regex: normalizedSuitablePlace, $options: 'i' } };
             }
         }
-        if (normalizedSize) {
-            if (Array.isArray(normalizedSize)) {
-                filter.size = { $in: normalizedSize };
+        if (size) {
+            if (Array.isArray(size)) {
+                filter.size = { $in: size };
             } else {
-                filter.size = { $elemMatch: { $regex: normalizedSize, $options: 'i' } };
+                filter.size = { $elemMatch: { $regex: size, $options: 'i' } };
             }
         }
-        if (normalizedFinish) {
-            if (Array.isArray(normalizedFinish)) {
-                filter.finish = { $in: normalizedFinish };
+        if (finish) {
+            if (Array.isArray(finish)) {
+                filter.finish = { $in: finish };
             } else {
-                filter.finish = { $elemMatch: { $regex: normalizedFinish, $options: 'i' } };
+                filter.finish = { $elemMatch: { $regex: finish, $options: 'i' } };
             }
         }
-        if (normalizedMaterial) {
-            if (Array.isArray(normalizedMaterial)) {
-                filter.material = { $in: normalizedMaterial };
+        if (material) {
+            if (Array.isArray(material)) {
+                filter.material = { $in: material };
             } else {
-                filter.material = { $elemMatch: { $regex: normalizedMaterial, $options: 'i' } };
+                filter.material = { $elemMatch: { $regex: material, $options: 'i' } };
             }
         }
         if (status) filter.status = status;
         if (favorite !== undefined) filter.favorite = favorite === 'true';
-        if (normalizedColor) {
-    if (Array.isArray(normalizedColor)) {
-        filter.$or = normalizedColor.map(color => ({
-            'tiles_color.color_name': { $regex: color, $options: 'i' }
-        }));
-    } else {
-        filter['tiles_color.color_name'] = { $regex: normalizedColor, $options: 'i' };
-    }
-}
+        if (priority) filter.priority = { $regex: priority, $options: 'i' };
+        if (color_name) {
+            if (Array.isArray(color_name)) {
+                filter.$or = color_name.map(color => ({
+                    'tiles_color.color_name': { $regex: color, $options: 'i' }
+                }));
+            } else {
+                filter['tiles_color.color_name'] = { $regex: color_name, $options: 'i' };
+            }
+        }
 
-        const userFilter = { ...filter, created_by: new mongoose.Types.ObjectId(userId) };
+        filter.created_by = new mongoose.Types.ObjectId(userId);
 
         let tiles = [];
         let total = 0;
 
         if (sort_by === "name") {
-            total = await Tiles.countDocuments(userFilter);
-            tiles = await Tiles.aggregate([
-                { $match: userFilter },
+            total = await Tiles.countDocuments(filter);
+            const pipeline = [
+                { $match: filter },
                 { $sort: { tiles_name: 1 } },
-                { $skip: skip },
-                { $limit: parseInt(limit) }
-            ]);
+                { $skip: skip }
+            ];
+            if (useLimit) pipeline.push({ $limit: parsedLimit });
+            tiles = await Tiles.aggregate(pipeline);
         } else if (sort_by === "priority") {
             const aggregatePipeline = [
-                { $match: userFilter },
+                { $match: filter },
                 {
                     $addFields: {
                         priorityOrder: {
@@ -389,12 +392,12 @@ export const getTiles = async (req, res) => {
                     }
                 },
                 { $sort: { priorityOrder: 1 } },
-                { $skip: skip },
-                { $limit: parseInt(limit) }
+                { $skip: skip }
             ];
+            if (useLimit) aggregatePipeline.push({ $limit: parsedLimit });
 
             const countPipeline = [
-                { $match: userFilter },
+                { $match: filter },
                 {
                     $addFields: {
                         priorityOrder: {
@@ -416,19 +419,20 @@ export const getTiles = async (req, res) => {
             total = countResult[0]?.total || 0;
             tiles = await Tiles.aggregate(aggregatePipeline);
         } else {
-            total = await Tiles.countDocuments(userFilter);
-            tiles = await Tiles.find(userFilter)
+            total = await Tiles.countDocuments(filter);
+            let query = Tiles.find(filter)
                 .sort({ createdAt: sortOrder })
-                .skip(skip)
-                .limit(parseInt(limit));
+                .skip(skip);
+            if (useLimit) query = query.limit(parsedLimit);
+            tiles = await query;
         }
 
         return sendSuccessResponse(res, {
             data: tiles,
             currentPage: parseInt(page),
-            totalPages: Math.ceil(total / limit),
+            totalPages: useLimit ? Math.ceil(total / parsedLimit) : 1,
             totalItems: total,
-        }, 'Tiles Get successfully');
+        }, 'Tiles fetched successfully');
     } catch (error) {
         console.error('Get Tiles Error:', error);
         return sendErrorResponse(
