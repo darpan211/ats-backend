@@ -24,6 +24,9 @@ const userSchema = new mongoose.Schema(
         },
         metadata: mongoose.Schema.Types.Mixed,
         roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' },
+        profile_image:{
+            type:String
+        }
     },
     { timestamps: true }
 );

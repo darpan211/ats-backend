@@ -10,6 +10,7 @@ import suitablePlaceRoutes from '../routes/attributes/suitablePlaceRoutes.js';
 import addTiles from './tilesRoutes.js';
 import admin from './adminRoutes.js';
 import finish from './attributes/finishRoutes.js';
+import profile from './profileRoutes.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -23,5 +24,6 @@ router.use('/suitablePlace', suitablePlaceRoutes);
 router.use('/tiles', addTiles);
 router.use('/admin', admin);
 router.use('/finish', finish);
+router.use('/profile',profile)
 
 export default router;
