@@ -31,6 +31,7 @@ const uploadFile = async (file, folder) => {
 export const uploadToS3 = (file) => uploadFile(file, 'tiles');
 export const uploadToRoomsS3 = (file) => uploadFile(file, 'rooms');
 export const uploadToUserS3 = (file) => uploadFile(file, 'users');
+export const uploadToConfigureS3 = (file) => uploadFile(file, 'configure');
 
 export const deleteFromS3 = async (imageUrl) => {
     try {
