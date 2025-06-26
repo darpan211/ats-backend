@@ -11,6 +11,7 @@ import addTiles from './tilesRoutes.js';
 import admin from './adminRoutes.js';
 import finish from './attributes/finishRoutes.js';
 import profile from './profileRoutes.js';
+import configure from './configueRoute.js';
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -24,6 +25,7 @@ router.use('/suitablePlace', suitablePlaceRoutes);
 router.use('/tiles', addTiles);
 router.use('/admin', admin);
 router.use('/finish', finish);
-router.use('/profile',profile)
+router.use('/profile',profile);
+router.use('/configure', configure);
 
 export default router;
