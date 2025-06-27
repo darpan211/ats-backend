@@ -11,15 +11,21 @@ const s3 = new AWS.S3({
 
 const uploadFile = async (file, folder) => {
     try {
-        const fileContent = fs.readFileSync(file.path);
-        const fileExt = path.extname(file.originalname);
+        // Support both buffer or file.path
+        const fileContent = file.buffer 
+            ? file.buffer 
+            : fs.readFileSync(file.path);
+
+        const fileExt = path.extname(file.originalname) || '.png';
         const s3Key = `${folder}/${uuidv4()}${fileExt}`;
+
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: s3Key,
             Body: fileContent,
-            ContentType: file.mimetype,
+            ContentType: file.mimetype || 'image/png',
         };
+
         const uploadResult = await s3.upload(params).promise();
         return uploadResult.Location;
     } catch (error) {
@@ -32,7 +38,7 @@ export const uploadToS3 = (file) => uploadFile(file, 'tiles');
 export const uploadToRoomsS3 = (file) => uploadFile(file, 'rooms');
 export const uploadToUserS3 = (file) => uploadFile(file, 'users');
 export const uploadToConfigureS3 = (file) => uploadFile(file, 'configure');
-
+export const uploadUrlToS3 = (file) => uploadFile(file, 'urls');
 export const deleteFromS3 = async (imageUrl) => {
     try {
         // Extract the S3 key from the URL
