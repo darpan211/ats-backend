@@ -9,9 +9,9 @@ import fs from 'fs';
 import Tiles from '../models/tiles.model.js';
 import getColors from 'get-image-colors';
 import namer from 'color-namer';
-import { uploadToS3, deleteFromS3 } from '../services/s3Uploder.js';
+import { uploadToS3, deleteFromS3,uploadUrlToS3 } from '../services/s3Uploder.js';
 import mongoose from 'mongoose';
-
+import QRCode from 'qrcode';
 const getImageColors = async (imagePath) => {
     try {
         const filePath = path.join(imagePath);
@@ -38,13 +38,15 @@ export const addTiles = async (req, res) => {
             status,
             thickness,
             finish,
-            material
+            material,
+            qr_urls
         } = req.body;
+
         const tiles_image = req.files;
+
         const parseToArray = (val) => {
             if (Array.isArray(val)) return val;
             if (typeof val === 'string') {
-                // Remove quotes and split by comma
                 return val.replace(/[\[\]"]+/g, '').split(',').map(s => s.trim()).filter(Boolean);
             }
             return [];
@@ -55,10 +57,10 @@ export const addTiles = async (req, res) => {
         size = parseToArray(size);
         finish = parseToArray(finish);
         material = parseToArray(material);
-
-        // For tiles_name and thickness, handle as before
         const tilesName = parseToArray(tiles_name);
         const tilesThickness = parseToArray(thickness);
+        const qrUrls = parseToArray(qr_urls);
+
         const createdTiles = [];
 
         for (let i = 0; i < tiles_image.length; i++) {
@@ -67,6 +69,20 @@ export const addTiles = async (req, res) => {
             const imageUrl = await uploadToS3(image);
             fs.unlinkSync(image.path);
 
+            let qrImageUrl = '';
+            if (qrUrls[i]) {
+                // Generate QR Code as base64
+                const qrDataUrl = await QRCode.toDataURL(qrUrls[i]);
+                const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+                const buffer = Buffer.from(base64Data, 'base64');
+
+                qrImageUrl = await uploadUrlToS3({
+                    buffer,
+                    originalname: `qr_tile_${Date.now()}_${i}.png`,
+                    mimetype: 'image/png'
+                });
+            }
+            
             const tile = await Tiles.create({
                 tiles_name: tilesName[i] || tilesName[0],
                 description,
@@ -81,6 +97,8 @@ export const addTiles = async (req, res) => {
                 finish,
                 material,
                 created_by: userId,
+                qr_url: qrUrls[i] || null,
+                qr_image: qrImageUrl || null
             });
 
             createdTiles.push(tile);
@@ -167,7 +185,7 @@ export const updateTiles = async (req, res) => {
     try {
         const { id } = req.params;
         const tiles_image = req.file;
-        // Only parse and add fields if they exist in req.body
+
         const parseToArray = (val) => {
             if (Array.isArray(val)) return val;
             if (typeof val === 'string') {
@@ -190,11 +208,11 @@ export const updateTiles = async (req, res) => {
             'material',
             'favorite',
             'priority',
+            'qr_url'
         ];
 
         for (const field of fields) {
             if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-                // Parse array fields
                 if (['series', 'suitable_place', 'size', 'finish', 'material'].includes(field)) {
                     updateData[field] = parseToArray(req.body[field]);
                 } else if (field === 'favorite') {
@@ -206,13 +224,13 @@ export const updateTiles = async (req, res) => {
             }
         }
 
+        const oldTile = await Tiles.findById(id);
+        if (!oldTile) {
+            return sendErrorResponse(res, HTTPSTATUS.notFound.code, 'Tiles not found');
+        }
+
         if (tiles_image) {
-            const oldTile = await Tiles.findById(id);
-            if (
-                oldTile &&
-                oldTile.tiles_image &&
-                oldTile.tiles_image.length > 0
-            ) {
+            if (oldTile.tiles_image) {
                 const imagesToDelete = Array.isArray(oldTile.tiles_image)
                     ? oldTile.tiles_image
                     : [oldTile.tiles_image];
@@ -220,12 +238,34 @@ export const updateTiles = async (req, res) => {
                     await deleteFromS3(imgUrl);
                 }
             }
+
             const colorResponse = await getImageColors(tiles_image.path);
             const imageUrl = await uploadToS3(tiles_image);
             fs.unlinkSync(tiles_image.path);
 
             updateData.tiles_color = colorResponse;
             updateData.tiles_image = imageUrl;
+        }
+
+        if (req.body.qr_url && req.body.qr_url !== oldTile.qr_url) {
+            // Delete old QR image from S3 if present
+            if (oldTile.qr_image) {
+                await deleteFromS3(oldTile.qr_image);
+            }
+
+            // Generate new QR code from new URL
+            const qrDataUrl = await QRCode.toDataURL(req.body.qr_url);
+            const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // Upload QR image buffer to S3
+            const qrImageUrl = await uploadToS3({
+                buffer,
+                originalname: `qr_tile_${Date.now()}.png`,
+                mimetype: 'image/png'
+            });
+
+            updateData.qr_image = qrImageUrl;
         }
 
         const updatedTiles = await Tiles.findByIdAndUpdate(id, updateData, {

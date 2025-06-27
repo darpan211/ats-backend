@@ -68,6 +68,8 @@ const addTiles = new mongoose.Schema(
             type: String,
             default: 'medium',
         },
+        qr_url: { type: String },
+        qr_image: { type: String },
     },
     { timestamps: true }
 );
