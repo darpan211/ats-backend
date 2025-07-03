@@ -22,48 +22,46 @@ export const createMasterConfig = async (req, res) => {
 
     let slider_images = [];
 
-    // Map of files by fieldname (e.g., room1, image1, tiles[], slider)
     const imageMap = {};
     req.files.forEach(file => {
       imageMap[file.fieldname] = imageMap[file.fieldname] || [];
       imageMap[file.fieldname].push(file);
     });
 
-    // Upload all files to S3 + cleanup
     for (const [field, files] of Object.entries(imageMap)) {
       for (const file of files) {
         const s3Url = await uploadToConfigureS3(file);
-        fs.unlinkSync(file.path); // Delete temp file
+        fs.unlinkSync(file.path);
 
-        // Room images (e.g., room1, room2...)
+        // Room images
         if (field.startsWith('room')) {
           if (!places_images[field]) places_images[field] = [];
           places_images[field].push(s3Url);
         }
 
-        // Feature images (e.g., image1, image2… with name1, description1…)
-        else if (field.startsWith('image')) {
-          const index = field.replace('image', '');
-          const feature = {
-            name: req.body[`name${index}`],
-            description: req.body[`description${index}`],
-            image: s3Url
-          };
-          if (feature.name && feature.description) {
-            feature_images.push(feature);
+        // Feature images: image1, image2, etc.
+        else if (/^image\d+$/.test(field)) {
+          const index = field.match(/\d+/)?.[0];
+          const fname = req.body[`name${index}`];
+          const fdesc = req.body[`description${index}`];
+          if (fname && fdesc) {
+            feature_images.push({
+              name: fname,
+              description: fdesc,
+              image: s3Url,
+            });
           }
         }
 
-        // Tiles images (multiple)
+        // Tiles
         else if (field === 'tiles') {
           tiles.push(s3Url);
         }
 
-        // Slider image (single)
+        // Slider
         else if (field === 'slider_image') {
-            if (!slider_images) slider_images = [];
-            slider_images.push(s3Url);
-            }
+          slider_images.push(s3Url);
+        }
       }
     }
 
@@ -139,7 +137,6 @@ export const updateMasterConfig = async (req, res) => {
       socialMediaURL
     } = req.body;
 
-    // const updatedFields = { ...existing._doc };
     const updatedFields = {
     ...existing._doc,
     places_images: Object.fromEntries(existing.places_images) // convert Map to plain object
@@ -328,6 +325,105 @@ export const getAllConfigs = async (req, res) => {
     });
   }
 };
+
+
+// export const getAllConfigs = async (req, res) => {
+//   try {
+//     const configs = await MasterConfig.find().sort({ createdAt: -1 });
+//     const dummy = [{
+//       places_images: {
+//         roome1: [
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/ce999694-bdfa-4d36-84fb-369bb880b9d7.jpg",
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/75979a7a-3f9a-4128-a12c-336717ab9ef1.jpg",
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/93dac3db-8e3b-4e52-a4ae-1bbd281be657.jpg"
+//         ],
+//         roome2: [
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/48efd030-8a3e-47f0-93df-a4e4f84edf0c.jpg",
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/f4962940-5c7b-44dd-8442-023bda7dc09a.jpg"
+//         ],
+//         room3: [
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/33b87680-9557-445d-a880-76c4ecec7e5f.jpg",
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/b5e06405-69bc-4ddc-9ca6-b45a116f77e3.jpg",
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/df364460-04ff-43ff-b638-3bd14c040a5f.jpg"
+//         ]
+//       },
+//       feature_images: [
+//         {
+//           name: "name1 data",
+//           image: "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/5a5db3da-8d3b-40f6-8b72-9b71762afd4e.jpg",
+//           description: "description1 data"
+//         },
+//         {
+//           name: "name2 data",
+//           image: "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/5615555c-ce45-481e-8878-514edf275322.jpeg",
+//           description: "description2 data"
+//         }
+//       ],
+//       tiles_info: {
+//         title: "test1",
+//         description: "Tiles Info Description",
+//         features: ["glossy", "Anti-slip"],
+//         tiles: [
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/7a8135aa-2061-49b7-a837-b87dba583ff4.jpg",
+//           "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/fb22db54-340d-41e0-93d6-104b8f8f295d.jpg"
+//         ]
+//       },
+//       contact_info: {
+//         name: "Company Name",
+//         email: "admin@example.com",
+//         phone: "9999999999",
+//         address: "City, Country",
+//         website: "https://yourdomain.com",
+//         socialMediaURL: "https://linkedin.com/in"
+//       },
+//       slider_images: [
+//         "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/c16f6e8f-7cea-4ccb-bc58-75556348c453.jpg",
+//         "https://ats-tiles-bucket.s3.eu-north-1.amazonaws.com/configure/95115292-d95c-4333-9dfb-939512dbde03.jpg"
+//       ],
+//       createdAt: new Date(),
+//       updatedAt: new Date(),
+//       __v: 0
+//     }];
+
+//     const filledConfigs = configs.map((config) => {
+//       const obj = config.toObject();
+//       return {
+//         _id: obj._id,
+//         places_images: Object.keys(obj.places_images || {}).length ? obj.places_images : dummy[0].places_images,
+//         feature_images: (obj.feature_images || []).length ? obj.feature_images : dummy[0].feature_images,
+//         tiles_info: {
+//             title: obj.tiles_info?.title || dummy[0].tiles_info.title,
+//             description: obj.tiles_info?.description || dummy[0].tiles_info.description,
+//             features:
+//               (Array.isArray(obj.tiles_info?.features) && obj.tiles_info.features.length)
+//                 ? obj.tiles_info.features
+//                 : dummy[0].tiles_info.features,
+//             tiles: (obj.tiles_info?.tiles && obj.tiles_info.tiles.length)
+//               ? obj.tiles_info.tiles
+//               : dummy[0].tiles_info.tiles
+//           },
+//         contact_info: obj.contact_info || dummy[0].contact_info,
+//         slider_images: (obj.slider_images || []).length ? obj.slider_images : dummy[0].slider_images,
+//         createdAt: obj.createdAt,
+//         updatedAt: obj.updatedAt,
+//         __v: obj.__v
+//       };
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'All Master Configurations fetched successfully',
+//       data: filledConfigs.length ? filledConfigs : [dummy[0]]
+//     });
+//   } catch (error) {
+//     console.error('Error fetching all configs:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to fetch configurations',
+//       error: error.message
+//     });
+//   }
+// };
 
 
 export const getConfigById = async (req, res) => {
