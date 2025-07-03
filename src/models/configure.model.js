@@ -28,19 +28,16 @@ const contactInfoSchema = new mongoose.Schema({
     type: String,
     lowercase: true,
     trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],
   },
   phone: { type: String, trim: true },
   address: { type: String},
   website: {
     type: String,
     trim: true,
-    match: [/^https?:\/\/.+/, 'Website must be a valid URL (http/https)'],
   },
   socialMediaURL: {
     type: String,
     trim: true,
-    match: [/^https?:\/\/.+/, 'Social media URL must be a valid URL (http/https)'],
   },
 }, { _id: false });
 

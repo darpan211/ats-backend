@@ -16,6 +16,28 @@ export const createMasterConfig = async (req, res) => {
       socialMediaURL
     } = req.body;
     const userId = req.user.userId;
+    
+    if (email && typeof email === 'string' && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    if (website && typeof website === 'string' && !/^https?:\/\/.+/.test(website.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Website must start with http:// or https://'
+      });
+    }
+
+    if (socialMediaURL && typeof socialMediaURL === 'string' && !/^https?:\/\/.+/.test(socialMediaURL.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Social media URL must start with http:// or https://'
+      });
+    }
+
     const places_images = {};
     const feature_images = [];
     const tiles = [];
@@ -136,6 +158,27 @@ export const updateMasterConfig = async (req, res) => {
       website,
       socialMediaURL
     } = req.body;
+    
+    if (email && typeof email === 'string' && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    if (website && typeof website === 'string' && !/^https?:\/\/.+/.test(website.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Website must start with http:// or https://'
+      });
+    }
+
+    if (socialMediaURL && typeof socialMediaURL === 'string' && !/^https?:\/\/.+/.test(socialMediaURL.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Social media URL must start with http:// or https://'
+      });
+    }
 
     const updatedFields = {
       ...existing._doc,
