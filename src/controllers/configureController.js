@@ -15,7 +15,7 @@ export const createMasterConfig = async (req, res) => {
       website,
       socialMediaURL
     } = req.body;
-
+    const userId = req.user.userId;
     const places_images = {};
     const feature_images = [];
     const tiles = [];
@@ -94,7 +94,8 @@ export const createMasterConfig = async (req, res) => {
         website,
         socialMediaURL
       },
-      slider_images
+      slider_images,
+      created_by: userId
     };
 
     const saved = await MasterConfig.create(payload);
@@ -309,7 +310,8 @@ export const deleteMasterConfig = async (req, res) => {
 
 export const getAllConfigs = async (req, res) => {
   try {
-    const configs = await MasterConfig.find().sort({ createdAt: -1 });
+    const userId = req.user.userId;
+    const configs = await MasterConfig.find({ created_by: userId }).sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       message: 'All Master Configurations fetched successfully',

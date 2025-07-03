@@ -74,9 +74,14 @@ const masterConfigSchema = new mongoose.Schema({
 
   // 5. Slider Image
   slider_images: {
-  type: [String], // array of URLs
-  default: [],
-}
+    type: [String], // array of URLs
+    default: [],
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users',
+    required: true,
+  }
 }, { timestamps: true });
 
 export default mongoose.model('MasterConfig', masterConfigSchema);
