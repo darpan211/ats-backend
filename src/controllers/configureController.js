@@ -29,41 +29,40 @@ export const createMasterConfig = async (req, res) => {
     });
 
     for (const [field, files] of Object.entries(imageMap)) {
-      for (const file of files) {
-        const s3Url = await uploadToConfigureS3(file);
-        fs.unlinkSync(file.path);
+  for (const file of files) {
+    const s3Url = await uploadToConfigureS3(file);
+    fs.unlinkSync(file.path);
 
-        // Room images
-        if (field.startsWith('room')) {
-          if (!places_images[field]) places_images[field] = [];
-          places_images[field].push(s3Url);
-        }
-
-        // Feature images: image1, image2, etc.
-        else if (/^image\d+$/.test(field)) {
-          const index = field.match(/\d+/)?.[0];
-          const fname = req.body[`name${index}`];
-          const fdesc = req.body[`description${index}`];
-          if (fname && fdesc) {
-            feature_images.push({
-              name: fname,
-              description: fdesc,
-              image: s3Url,
-            });
-          }
-        }
-
-        // Tiles
-        else if (field === 'tiles') {
-          tiles.push(s3Url);
-        }
-
-        // Slider
-        else if (field === 'slider_image') {
-          slider_images.push(s3Url);
-        }
+    // Feature images: image1, image2, etc.
+    if (/^image\d+$/.test(field)) {
+      const index = field.match(/\d+/)?.[0];
+      const fname = req.body[`name${index}`];
+      const fdesc = req.body[`description${index}`];
+      if (fname && fdesc) {
+        feature_images.push({
+          name: fname,
+          description: fdesc,
+          image: s3Url,
+        });
       }
     }
+
+    // Tiles
+    else if (field === 'tiles') {
+      tiles.push(s3Url);
+    }
+
+    // Slider
+    else if (field === 'slider_image') {
+      slider_images.push(s3Url);
+    }
+
+    else {
+      if (!places_images[field]) places_images[field] = [];
+      places_images[field].push(s3Url);
+    }
+  }
+}
 
     // Parse features[] if sent as comma-separated or JSON string
     let parsedFeatures = [];
@@ -186,11 +185,11 @@ export const updateMasterConfig = async (req, res) => {
             } else {
                 updatedFields.places_images[field].push(s3Url);
             }
-            }
-            else if (field.startsWith('room')) {
-                console.log(`Adding new room image for field: ${field}`);
-            updatedFields.places_images[field] = [s3Url]; // add new room dynamically
         }
+        
+        else if (!['tiles', 'slider_image', 'feature_images'].includes(field)) {
+            updatedFields.places_images[field] = [s3Url];
+      }
 
 
 
