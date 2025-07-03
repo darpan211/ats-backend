@@ -70,7 +70,7 @@ export const createMasterConfig = async (req, res) => {
       try {
         parsedFeatures = Array.isArray(features)
           ? features
-          : JSON.parse(features); // stringified array
+          : JSON.parse(features);
       } catch (err) {
         parsedFeatures = features.split(',').map(f => f.trim());
       }
