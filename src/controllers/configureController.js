@@ -138,9 +138,10 @@ export const updateMasterConfig = async (req, res) => {
     } = req.body;
 
     const updatedFields = {
-    ...existing._doc,
-    places_images: Object.fromEntries(existing.places_images) // convert Map to plain object
+      ...existing._doc,
+      places_images: Object.fromEntries(existing.places_images)
     };
+
     const imageMap = {};
     req.files.forEach(file => {
       imageMap[file.fieldname] = imageMap[file.fieldname] || [];
@@ -174,70 +175,35 @@ export const updateMasterConfig = async (req, res) => {
             updatedFields.slider_images.push(s3Url);
           }
         }
+        // Feature image update by index
+        else if (field.startsWith('image')) {
+          const index = parseInt(field.replace('image', ''));
+          const name = req.body[`name${index}`];
+          const description = req.body[`description${index}`];
 
-        // Room image update by index (e.g., room_roome3_index = 1)
-        else if (field in updatedFields.places_images) {
-            const roomIndexKey = Object.keys(req.body).find(k => k.startsWith(`room_${field}_index`));
-            const roomIndex = roomIndexKey ? parseInt(req.body[roomIndexKey]) : NaN;
+          if (!isNaN(index)) {
+            const oldFeature = updatedFields.feature_images[index];
 
-            if (!isNaN(roomIndex) && updatedFields.places_images[field]?.[roomIndex]) {
-                await deleteFromS3(updatedFields.places_images[field][roomIndex]);
-                updatedFields.places_images[field][roomIndex] = s3Url;
-            } else {
-                updatedFields.places_images[field].push(s3Url);
+            // Delete old image from S3 if exists
+            if (oldFeature?.image) {
+              await deleteFromS3(oldFeature.image);
             }
+
+            // Build new object
+            const newFeature = {
+              name: name || oldFeature?.name || '',
+              description: description || oldFeature?.description || '',
+              image: s3Url
+            };
+
+            updatedFields.feature_images[index] = newFeature;
+          }
         }
-        
+
+        // Room/area images (any dynamic key)
         else if (!['tiles', 'slider_image', 'feature_images'].includes(field)) {
             updatedFields.places_images[field] = [s3Url];
-      }
-
-
-
-        // Feature image update by index
-        // else if (field.startsWith('image')) {
-        //   const featureIndex = parseInt(req.body.feature_index);
-        //   const nameKey = `name${featureIndex}`;
-        //   const descKey = `description${featureIndex}`;
-
-        //   const feature = {
-        //     name: req.body[nameKey],
-        //     description: req.body[descKey],
-        //     image: s3Url
-        //   };
-
-        //   if (!isNaN(featureIndex) && updatedFields.feature_images?.[featureIndex]) {
-        //     await deleteFromS3(updatedFields.feature_images[featureIndex].image);
-        //     updatedFields.feature_images[featureIndex] = feature;
-        //   } else {
-        //     updatedFields.feature_images.push(feature);
-        //   }
-        // }
-
-        else if (field.startsWith('image')) {
-            const index = parseInt(field.replace('image', ''));
-            const name = req.body[`name${index}`];
-            const description = req.body[`description${index}`];
-
-            if (!isNaN(index)) {
-                const oldFeature = updatedFields.feature_images[index];
-
-                // Delete old image from S3 if exists
-                if (oldFeature?.image) {
-                await deleteFromS3(oldFeature.image);
-                }
-
-                // Build new object
-                const newFeature = {
-                name: name || oldFeature?.name || '',
-                description: description || oldFeature?.description || '',
-                image: s3Url
-                };
-
-                updatedFields.feature_images[index] = newFeature;
-            }
-            }
-
+          }
       }
     }
 
