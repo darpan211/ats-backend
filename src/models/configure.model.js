@@ -2,15 +2,15 @@ import mongoose from 'mongoose';
 
 // Feature Image Subdocument
 const featureImageSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  image: { type: String, required: true },
-  description: { type: String, required: true },
+  name: { type: String },
+  image: { type: String},
+  description: { type: String},
 }, { _id: false });
 
 // Tiles Info Subdocument
 const tilesInfoSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: { type: String, required: true },
+  title: { type: String},
+  description: { type: String},
   features: {
     type: [String],
     default: [],
@@ -23,16 +23,15 @@ const tilesInfoSchema = new mongoose.Schema({
 
 // Contact Info Subdocument
 const contactInfoSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
+  name: { type: String,trim: true },
   email: {
     type: String,
-    required: true,
     lowercase: true,
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],
   },
-  phone: { type: String, required: true, trim: true },
-  address: { type: String, required: true },
+  phone: { type: String, trim: true },
+  address: { type: String},
   website: {
     type: String,
     trim: true,
@@ -79,8 +78,7 @@ const masterConfigSchema = new mongoose.Schema({
   },
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'users',
-    required: true,
+    ref: 'users'
   }
 }, { timestamps: true });
 
