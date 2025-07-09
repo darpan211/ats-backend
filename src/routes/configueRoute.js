@@ -5,7 +5,7 @@ import {
     updateMasterConfig,
     deleteMasterConfig,
     getAllConfigs,
-    getConfigById
+    getConfigById,
 } from '../controllers/configureController.js';
 import {
     authenticateToken,
@@ -34,9 +34,9 @@ router.delete(
     deleteMasterConfig
 );
 router.get(
-    '/getconfigure',
-    authenticateToken,
-    authorizeRoles('admin', 'superadmin', 'seller'),
+    '/getconfigure/:id',
+    // authenticateToken,
+    // authorizeRoles('admin', 'superadmin', 'seller'),
     getAllConfigs
 );
 
