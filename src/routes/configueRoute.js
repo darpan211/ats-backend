@@ -1,7 +1,7 @@
 import express from 'express';
 import upload from '../utils/multerConfig.js';
 import {
-    createMasterConfig,
+    upsertMasterConfig,
     updateMasterConfig,
     deleteMasterConfig,
     getAllConfigs,
@@ -13,15 +13,15 @@ import {
 } from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
-router.post(
+router.put(
     '/addslider',
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
     upload.any(),
-    createMasterConfig
+    upsertMasterConfig
 );
 router.put(
-    '/updateconfigure/:id',
+    '/updateconfigure',
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
     upload.any(),

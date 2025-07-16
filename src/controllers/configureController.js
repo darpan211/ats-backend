@@ -2,7 +2,7 @@ import fs from 'fs';
 import MasterConfig from '../models/configure.model.js';
 import { uploadToConfigureS3, deleteFromS3 } from '../services/s3Uploder.js';
 
-export const createMasterConfig = async (req, res) => {
+export const upsertMasterConfig = async (req, res) => {
     try {
         const {
             title,
@@ -14,60 +14,78 @@ export const createMasterConfig = async (req, res) => {
             address,
             website,
             socialMediaURL,
+            existing_slider_images,
+            slider_image_urls,
         } = req.body;
+
         const userId = req.user.userId;
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
 
-        if (
-            email &&
-            typeof email === 'string' &&
-            !/^\S+@\S+\.\S+$/.test(email.trim())
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid email format',
-            });
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                if (!allowedMimeTypes.includes(file.mimetype)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Only image files are allowed. Supported formats: JPEG, JPG, PNG, and GIF.',
+                    });
+                }
+            }
         }
 
-        if (
-            website &&
-            typeof website === 'string' &&
-            !/^https?:\/\/.+/.test(website.trim())
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Website must start with http:// or https://',
-            });
+        // Email, Website, Social URL validations
+        if (email && typeof email === 'string' && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+            return res.status(400).json({ success: false, message: 'Invalid email format' });
         }
 
-        if (
-            socialMediaURL &&
-            typeof socialMediaURL === 'string' &&
-            !/^https?:\/\/.+/.test(socialMediaURL.trim())
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Social media URL must start with http:// or https://',
-            });
+        if (website && typeof website === 'string' && !/^https?:\/\/.+/.test(website.trim())) {
+            return res.status(400).json({ success: false, message: 'Website must start with http:// or https://' });
         }
 
+        if (socialMediaURL && typeof socialMediaURL === 'string' && !/^https?:\/\/.+/.test(socialMediaURL.trim())) {
+            return res.status(400).json({ success: false, message: 'Social media URL must start with http:// or https://' });
+        }
+
+        // Extract image URLs safely
+        const extractUrlsSafe = (input) => {
+            if (!input) return [];
+            try {
+                if (typeof input === 'string') {
+                    if (input.trim().startsWith('[')) {
+                        input = JSON.parse(input);
+                    } else {
+                        return [input];
+                    }
+                }
+                if (!Array.isArray(input)) input = [input];
+                return input.map(item =>
+                    typeof item === 'string' ? item : item?.url || null
+                ).filter(Boolean);
+            } catch (err) {
+                console.error('Failed to extract URLs safely:', err);
+                return [];
+            }
+        };
+
+        const existingSliderImages = extractUrlsSafe(existing_slider_images || slider_image_urls);
+
+        // Init containers
         const places_images = {};
         const feature_images = [];
         const tiles = [];
-
-        let slider_images = [];
+        const newSliderImages = [];
 
         const imageMap = {};
-        req.files.forEach((file) => {
+        (req.files || []).forEach((file) => {
             imageMap[file.fieldname] = imageMap[file.fieldname] || [];
             imageMap[file.fieldname].push(file);
         });
 
+        // Upload files
         for (const [field, files] of Object.entries(imageMap)) {
             for (const file of files) {
                 const s3Url = await uploadToConfigureS3(file);
-                fs.unlinkSync(file.path);
+                fs.unlinkSync(file.path); // cleanup
 
-                // Feature images: image1, image2, etc.
                 if (/^image\d+$/.test(field)) {
                     const index = field.match(/\d+/)?.[0];
                     const fname = req.body[`name${index}`];
@@ -79,69 +97,99 @@ export const createMasterConfig = async (req, res) => {
                             image: s3Url,
                         });
                     }
-                }
-
-                // Tiles
-                else if (field === 'tiles') {
+                } else if (field === 'tiles') {
                     tiles.push(s3Url);
-                }
-
-                // Slider
-                else if (field === 'slider_image') {
-                    slider_images.push(s3Url);
+                } else if (field === 'slider_image') {
+                    newSliderImages.push(s3Url);
                 } else {
                     if (!places_images[field]) places_images[field] = [];
                     places_images[field].push(s3Url);
                 }
             }
         }
+            Object.keys(req.body).forEach((key) => {
+                if (
+                    key.endsWith('_urls') &&
+                    key !== 'slider_image_urls' &&
+                    key !== 'tiles_urls'
+                ) {
+                    const baseField = key.replace('_urls', '');
+                    const urls = extractUrlsSafe(req.body[key]);
+                    if (urls.length > 0) {
+                        if (!places_images[baseField]) places_images[baseField] = [];
+                        places_images[baseField] = [...(places_images[baseField] || []), ...urls];
+                    }
+                }
+            });
 
-        // Parse features[] if sent as comma-separated or JSON string
+
+        const finalSliderImages = [...existingSliderImages, ...newSliderImages];
+
+        // Features cleanup
         let parsedFeatures = [];
         if (features) {
             try {
-                parsedFeatures = Array.isArray(features)
-                    ? features
-                    : JSON.parse(features);
-            } catch (err) {
+                parsedFeatures = Array.isArray(features) ? features : JSON.parse(features);
+            } catch {
                 parsedFeatures = features.split(',').map((f) => f.trim());
             }
         }
 
-        // Final payload
+        const existingConfig = await MasterConfig.findOne({ created_by: userId });
+        const existingTiles = extractUrlsSafe(req.body.tiles_urls);
+        const finalTiles = [...tiles, ...existingTiles];
+
+        // Final payload with conditional tiles assignment
+        const shouldUpdateTiles = tiles.length > 0 || 'tiles_urls' in req.body;
+        const updatedTiles = shouldUpdateTiles
+            ? [...tiles, ...extractUrlsSafe(req.body.tiles_urls)]
+            : (existingConfig?.tiles_info?.tiles || []);
+
         const payload = {
-            places_images,
-            feature_images,
+            places_images: Object.keys(places_images).length > 0
+                ? places_images
+                : existingConfig?.places_images || {},
+
+            feature_images: feature_images.length > 0
+                ? feature_images
+                : existingConfig?.feature_images || [],
+
             tiles_info: {
-                title,
-                description,
-                features: parsedFeatures,
-                tiles,
+                title: title?.trim() || existingConfig?.tiles_info?.title || '',
+                description: description?.trim() || existingConfig?.tiles_info?.description || '',
+                features: parsedFeatures.length > 0 ? parsedFeatures : existingConfig?.tiles_info?.features || [],
+                tiles: finalTiles.length > 0 ? finalTiles : existingConfig?.tiles_info?.tiles || [],
             },
+
             contact_info: {
-                name,
-                email,
-                phone,
-                address,
-                website,
-                socialMediaURL,
+                name: name?.trim() || existingConfig?.contact_info?.name || '',
+                email: email?.trim() || existingConfig?.contact_info?.email || '',
+                phone: phone?.trim() || existingConfig?.contact_info?.phone || '',
+                address: address?.trim() || existingConfig?.contact_info?.address || '',
+                website: website?.trim() || existingConfig?.contact_info?.website || '',
+                socialMediaURL: socialMediaURL?.trim() || existingConfig?.contact_info?.socialMediaURL || '',
             },
-            slider_images,
+
+            slider_images: finalSliderImages,
             created_by: userId,
         };
 
-        const saved = await MasterConfig.create(payload);
+        // Save or update config
+        const saved = existingConfig
+            ? await MasterConfig.findOneAndUpdate({ created_by: userId }, { $set: payload }, { new: true })
+            : await MasterConfig.create(payload);
 
-        res.status(201).json({
+        return res.status(200).json({
             success: true,
-            message: 'MasterConfig created successfully',
+            message: existingConfig ? 'MasterConfig updated successfully' : 'MasterConfig created successfully',
             data: saved,
         });
+
     } catch (error) {
-        console.error('Create MasterConfig Error:', error);
-        res.status(500).json({
+        console.error('Upsert MasterConfig Error:', error);
+        return res.status(500).json({
             success: false,
-            message: 'Error creating MasterConfig',
+            message: 'Error processing MasterConfig',
             error: error.message,
         });
     }
@@ -149,7 +197,7 @@ export const createMasterConfig = async (req, res) => {
 
 export const updateMasterConfig = async (req, res) => {
     try {
-        const { id } = req.params;
+        const  id  = req.user.userId
         const existing = await MasterConfig.findById(id);
 
         if (!existing) {
