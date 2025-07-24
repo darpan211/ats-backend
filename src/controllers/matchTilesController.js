@@ -2,6 +2,7 @@ import MatchTiles from '../models/manage.match.tiles.model.js';
 import Tiles from '../models/tiles.model.js';
 import { sendErrorResponse, sendSuccessResponse } from '../utils/helper.js';
 import { HTTPSTATUS } from '../utils/constants.js';
+import { sourceMapsEnabled } from 'process';
 
 export const createMatchTiles = async (req, res) => {
     try {
@@ -54,8 +55,8 @@ export const createMatchTiles = async (req, res) => {
 export const getmatchTiles = async (req, res) => {
     try {
         const userId = req.user.userId;
-
-        const getMatchTiles = await MatchTiles.find({ created_by: userId });
+        // Sort by _id descending (latest first)
+        const getMatchTiles = await MatchTiles.find({ created_by: userId }).sort({ _id: -1 });
 
         if (getMatchTiles.length === 0) {
             return res.status(404).json({
@@ -96,6 +97,7 @@ export const getmatchTiles = async (req, res) => {
             status: true,
             message: 'Match tiles fetched successfully',
             result,
+            order: 'Desc'
         });
     } catch (err) {
         console.error('Error in getmatchTiles:', err);
