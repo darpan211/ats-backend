@@ -20,7 +20,7 @@ router.post(
 );
 
 router.get(
-    '/matchtiles/:id',
+    '/matchtiles',
     authenticateToken,
     authorizeRoles('admin', 'superadmin', 'seller'),
     getmatchTiles
