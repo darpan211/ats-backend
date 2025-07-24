@@ -69,42 +69,6 @@ export const addTiles = async (req, res) => {
             const imageUrl = await uploadToS3(image);
             fs.unlinkSync(image.path);
 
-            // let qrImageUrl = '';
-            // if (qrUrls[i]) {
-            //     // Generate QR Code as base64
-            //     const qrDataUrl = await QRCode.toDataURL(qrUrls[i]);
-            //     const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
-            //     const buffer = Buffer.from(base64Data, 'base64');
-
-            //     qrImageUrl = await uploadUrlToS3({
-            //         buffer,
-            //         originalname: `qr_tile_${Date.now()}_${i}.png`,
-            //         mimetype: 'image/png'
-            //     });
-            // }
-
-            //     const tile = await Tiles.create({
-            //         tiles_name: tilesName[i] || tilesName[0],
-            //         description,
-            //         series,
-            //         category,
-            //         suitable_place,
-            //         size,
-            //         tiles_color: [color],
-            //         tiles_image: imageUrl,
-            //         status,
-            //         thickness: tilesThickness[i] || tilesThickness[0],
-            //         finish,
-            //         material,
-            //         created_by: userId,
-            //         qr_url: qrUrls[i] || null,
-            //         qr_image: qrImageUrl || null
-            //     });
-
-            //     createdTiles.push(tile);
-            // }
-
-
             // After creating the tile:
             const tile = await Tiles.create({
                 tiles_name: tilesName[i] || tilesName[0],
@@ -122,7 +86,7 @@ export const addTiles = async (req, res) => {
                 created_by: userId
             });
 
-            const qrTargetUrl = `http://localhost:5000/tiles/visualizer/${tile._id}`;
+            const qrTargetUrl = `https://atv-frontend-pied.vercel.app/tiles/visualizer/${tile._id}`;
 
 
             const qrDataUrl = await QRCode.toDataURL(qrTargetUrl);
